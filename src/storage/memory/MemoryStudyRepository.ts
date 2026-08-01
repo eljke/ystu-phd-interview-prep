@@ -33,6 +33,15 @@ export class MemoryStudyRepository implements StudyRepository {
   async saveTopicProgress(progress: TopicProgress) { this.progress.set(progress.id, clone(progress)); }
   async listQuizAttempts(profileId: string, topicId?: string) { return clone([...this.quizzes.values()].filter((a)=>a.profileId===profileId&&(!topicId||a.topicId===topicId)).sort((a,b)=>a.completedAt.localeCompare(b.completedAt))); }
   async saveQuizAttempt(attempt: QuizAttempt) { this.quizzes.set(attempt.id, clone(attempt)); }
+  async resetPracticeStatistics(profileId: string, topicId?: string) {
+    for (const [id, attempt] of this.quizzes) {
+      const coversTopic = attempt.topicId === topicId || attempt.questionResults?.some((item) => item.topicId === topicId);
+      if (attempt.profileId === profileId && (!topicId || coversTopic)) this.quizzes.delete(id);
+    }
+    for (const [id, progress] of this.progress) {
+      if (progress.profileId === profileId && (!topicId || progress.topicId === topicId)) this.progress.delete(id);
+    }
+  }
   async listOralAttempts(profileId: string, topicId?: string) { return clone([...this.oral.values()].filter((a)=>a.profileId===profileId&&(!topicId||a.topicId===topicId)).sort((a,b)=>a.completedAt.localeCompare(b.completedAt))); }
   async saveOralAttempt(attempt: OralAttempt) { this.oral.set(attempt.id, clone(attempt)); }
   async listPartnerAssessments(profileId: string, topicId?: string) { return clone([...this.assessments.values()].filter((a)=>a.responderProfileId===profileId&&(!topicId||a.topicId===topicId)).sort((a,b)=>a.completedAt.localeCompare(b.completedAt))); }

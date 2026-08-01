@@ -18,6 +18,7 @@ export interface StudyRepository {
   saveTopicProgress(progress: TopicProgress): Promise<void>;
   listQuizAttempts(profileId: string, topicId?: string): Promise<QuizAttempt[]>;
   saveQuizAttempt(attempt: QuizAttempt): Promise<void>;
+  resetPracticeStatistics(profileId: string, topicId?: string): Promise<void>;
   listOralAttempts(profileId: string, topicId?: string): Promise<OralAttempt[]>;
   saveOralAttempt(attempt: OralAttempt): Promise<void>;
   listPartnerAssessments(profileId: string, topicId?: string): Promise<PartnerAssessment[]>;

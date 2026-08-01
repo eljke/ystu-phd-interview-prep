@@ -3,7 +3,6 @@ import {
   type Topic,
   type TopicSection,
 } from '../../entities/content/topic';
-import { getFriendlyRecallPrompt } from './friendlyPrompts';
 import type { TopicStatus } from '../../entities/progress/progress';
 import { createOrderingQuestion } from './orderingQuestions';
 import { createTermQuestion } from './termQuestions';
@@ -12,6 +11,7 @@ export interface QuestionBankItem {
   id: string;
   topicId: string;
   topicCode: string;
+  topicTitle: string;
   section: TopicSection;
   kind: 'objective' | 'free-recall';
   question: QuizQuestion | RecallQuestion;
@@ -26,16 +26,13 @@ export interface RecallQuestion {
   checklist: string[];
 }
 
-function rotate<T>(items: T[], offset: number): T[] {
-  return [...items.slice(offset), ...items.slice(0, offset)];
-}
-
 export function buildQuestionBank(topics: readonly Topic[]): QuestionBankItem[] {
-  return topics.flatMap((topic, topicIndex) => {
+  return topics.flatMap((topic) => {
     const authored = topic.quiz.map((question) => ({
       id: `${topic.id}:${question.id}`,
       topicId: topic.id,
       topicCode: topic.code,
+      topicTitle: topic.originalText,
       section: topic.section,
       kind: 'objective' as const,
       question: { ...question, id: `${topic.id}:${question.id}` },
@@ -50,6 +47,7 @@ export function buildQuestionBank(topics: readonly Topic[]): QuestionBankItem[] 
             id: termQuestion.id,
             topicId: topic.id,
             topicCode: topic.code,
+            topicTitle: topic.originalText,
             section: topic.section,
             kind: 'objective' as const,
             question: termQuestion,
@@ -66,6 +64,7 @@ export function buildQuestionBank(topics: readonly Topic[]): QuestionBankItem[] 
             id: orderingQuestion.id,
             topicId: topic.id,
             topicCode: topic.code,
+            topicTitle: topic.originalText,
             section: topic.section,
             kind: 'objective' as const,
             question: orderingQuestion,
@@ -74,44 +73,12 @@ export function buildQuestionBank(topics: readonly Topic[]): QuestionBankItem[] 
         ]
       : [];
     const selectedPoints = topic.keyPoints.slice(0, 3);
-    const foreignPoints = rotate(
-      topics
-        .filter((candidate) => candidate.section === topic.section && candidate.id !== topic.id)
-        .flatMap((candidate) => candidate.keyPoints),
-      topicIndex * 3,
-    ).slice(0, 3);
-    const multipleId = `${topic.id}:key-points`;
-    const multiple: QuestionBankItem = {
-      id: multipleId,
-      topicId: topic.id,
-      topicCode: topic.code,
-      section: topic.section,
-      kind: 'objective',
-      question: {
-        id: multipleId,
-        type: 'multiple-choice',
-        prompt: `Отметьте верные утверждения по теме ${topic.code}.`,
-        explanation: `Опорные идеи: ${selectedPoints.map((point) => point.title).join(', ')}.`,
-        keyPointIds: selectedPoints.map((point) => point.id),
-        options: [
-          ...selectedPoints.map((point) => ({
-            id: `${multipleId}:${point.id}`,
-            text: point.explanation,
-          })),
-          ...foreignPoints.map((point, index) => ({
-            id: `${multipleId}:d${index + 1}`,
-            text: point.explanation,
-          })),
-        ],
-        correctOptionIds: selectedPoints.map((point) => `${multipleId}:${point.id}`),
-      },
-      sourceTitles: topic.sources.map((source) => source.title),
-    };
     const matchingId = `${topic.id}:matching`;
     const matching: QuestionBankItem = {
       id: matchingId,
       topicId: topic.id,
       topicCode: topic.code,
+      topicTitle: topic.originalText,
       section: topic.section,
       kind: 'objective',
       question: {
@@ -141,18 +108,19 @@ export function buildQuestionBank(topics: readonly Topic[]): QuestionBankItem[] 
       id: `${topic.id}:recall`,
       topicId: topic.id,
       topicCode: topic.code,
+      topicTitle: topic.originalText,
       section: topic.section,
       kind: 'free-recall',
       question: {
         id: `${topic.id}:recall`,
         type: 'free-recall',
-        prompt: getFriendlyRecallPrompt(topic.code),
+        prompt: `Расскажите своими словами: ${topic.originalText}`,
         modelAnswer: topic.shortAnswer,
         checklist: topic.keyPoints.map((point) => point.title),
       },
       sourceTitles: topic.sources.map((source) => source.title),
     };
-    return [...authored, ...term, ...ordering, multiple, matching, recall];
+    return [...authored, ...term, ...ordering, matching, recall];
   });
 }
 
@@ -211,9 +179,7 @@ export function selectPracticeQuestions({
     .sort((left, right) => right.rank - left.rank);
   const selected: QuestionBankItem[] = [];
   const fingerprint = (item: QuestionBankItem) =>
-    item.question.type === 'free-recall'
-      ? item.id
-      : [...item.question.keyPointIds].sort().join('|') || item.id;
+    item.question.prompt.toLocaleLowerCase('ru').replace(/\s+/g, ' ').trim();
   const addMatching = (accept: (item: QuestionBankItem) => boolean) => {
     for (const candidate of ranked) {
       if (selected.length >= count) break;
@@ -231,7 +197,6 @@ export function selectPracticeQuestions({
   addMatching((item) => !hasTopic(item) && !hasFingerprint(item));
   addMatching((item) => !hasType(item) && !hasFingerprint(item));
   addMatching((item) => !hasFingerprint(item));
-  addMatching(() => true);
   return selected.map((item) => ({
     ...item,
     question:

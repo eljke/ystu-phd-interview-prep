@@ -54,41 +54,66 @@ export function PracticeHistory({ attempts, bank }: { attempts: QuizAttempt[]; b
   const saved = attempts.filter((attempt) => attempt.questionResults?.length).slice(-10).reverse();
   if (!saved.length) return null;
   return (
-    <section className="info-card" aria-labelledby="practice-history-title">
-      <h2 id="practice-history-title">Прошлые попытки</h2>
-      <p>Откройте попытку, чтобы увидеть свой ответ, правильный вариант и пояснение.</p>
-      {saved.map((attempt) => (
-        <details key={attempt.id}>
-          <summary>
-            {new Date(attempt.completedAt).toLocaleString('ru-RU')} · {formatPercent(attempt.score)}
-          </summary>
-          <div className="quiz-card">
+    <section className="practice-history" aria-labelledby="practice-history-title">
+      <div className="section-heading">
+        <div>
+          <span className="eyebrow">История</span>
+          <h2 id="practice-history-title">Прошлые попытки</h2>
+        </div>
+        <p>Последние 10 результатов с разбором каждого ответа.</p>
+      </div>
+      <div className="attempt-list">
+        {saved.map((attempt) => (
+          <details className="attempt-card" key={attempt.id}>
+            <summary>
+              <span>
+                <strong>{formatPercent(attempt.score)}</strong>
+                <small>{attempt.correct} из {attempt.total} без ошибок</small>
+              </span>
+              <time dateTime={attempt.completedAt}>
+                {new Date(attempt.completedAt).toLocaleString('ru-RU')}
+              </time>
+            </summary>
+            <div className="attempt-review">
             {attempt.questionResults!.map((result, index) => {
               const item = byId.get(result.questionId);
               if (!item)
-                return <p key={result.questionId}>Вопрос {index + 1} был из старой версии банка.</p>;
+                return <p className="muted" key={result.questionId}>Вопрос {index + 1} был из старой версии банка.</p>;
               const score = result.score ?? (result.correct ? 1 : 0);
               if (item.question.type === 'free-recall')
                 return (
-                  <article className="quiz-question" key={result.questionId}>
-                    <strong>{item.question.prompt}</strong>
-                    <p>Самооценка: {score === 1 ? 'уверенно' : score > 0 ? 'частично' : 'не смог'}.</p>
-                    <p><strong>Ориентир:</strong> {item.question.modelAnswer}</p>
+                  <article className="review-item" key={result.questionId}>
+                    <div className="review-item__header">
+                      <span className="question-number">Тема {item.topicCode} · {item.topicTitle}</span>
+                      <span className={`result-badge ${score === 1 ? 'result-badge--correct' : 'result-badge--partial'}`}>
+                        {score === 1 ? 'Уверенно' : score > 0 ? 'Частично' : 'Нужно повторить'}
+                      </span>
+                    </div>
+                    <h3>{item.question.prompt}</h3>
+                    <div className="review-explanation"><strong>Вариант ответа</strong><p>{item.question.modelAnswer}</p></div>
                   </article>
                 );
               return (
-                <article className="quiz-question" key={result.questionId}>
-                  <strong>{item.question.prompt}</strong>
-                  <p><strong>{result.correct ? 'Верно' : 'Ошибка'}</strong></p>
-                  <p><strong>Ваш ответ:</strong> {formatGivenAnswer(item.question, attempt.answers[result.questionId] as QuizAnswer | undefined)}</p>
-                  {!result.correct && <p><strong>Правильный ответ:</strong> {formatCorrectAnswer(item.question)}</p>}
-                  <p>{item.question.explanation}</p>
+                <article className="review-item" key={result.questionId}>
+                  <div className="review-item__header">
+                    <span className="question-number">Тема {item.topicCode} · {item.topicTitle}</span>
+                    <span className={`result-badge ${result.correct ? 'result-badge--correct' : 'result-badge--wrong'}`}>
+                      {result.correct ? 'Верно' : 'Ошибка'}
+                    </span>
+                  </div>
+                  <h3>{item.question.prompt}</h3>
+                  <div className="answer-comparison">
+                    <p><span>Ваш ответ</span>{formatGivenAnswer(item.question, attempt.answers[result.questionId] as QuizAnswer | undefined)}</p>
+                    {!result.correct && <p><span>Правильный ответ</span>{formatCorrectAnswer(item.question)}</p>}
+                  </div>
+                  <div className="review-explanation"><strong>Почему так</strong><p>{item.question.explanation}</p></div>
                 </article>
               );
             })}
-          </div>
-        </details>
-      ))}
+            </div>
+          </details>
+        ))}
+      </div>
     </section>
   );
 }

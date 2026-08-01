@@ -20,4 +20,5 @@ export interface CloudSnapshot {
 export interface CloudStudyRepository {
   pull(profileId: string): Promise<CloudSnapshot>;
   apply(operation: SyncOperation): Promise<void>;
+  resetPracticeStatistics(topicId: string | undefined, attemptIds: string[]): Promise<void>;
 }

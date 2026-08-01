@@ -20,6 +20,22 @@ export class DexieStudyRepository implements StudyRepository {
   async saveTopicProgress(progress: TopicProgress) { await this.db.topicProgress.put(progress); }
   async listQuizAttempts(profileId: string, topicId?: string) { const items=topicId ? await this.db.quizAttempts.where('[profileId+topicId]').equals([profileId,topicId]).toArray() : await this.db.quizAttempts.where('profileId').equals(profileId).toArray(); return sorted(items); }
   async saveQuizAttempt(attempt: QuizAttempt) { await this.db.quizAttempts.put(attempt); }
+  async resetPracticeStatistics(profileId: string, topicId?: string) {
+    const attempts = await this.db.quizAttempts.where('profileId').equals(profileId).toArray();
+    const attemptIds = attempts
+      .filter((attempt) => !topicId || attempt.topicId === topicId || attempt.questionResults?.some((item) => item.topicId === topicId))
+      .map((attempt) => attempt.id);
+    const progressIds = (await this.db.topicProgress.where('profileId').equals(profileId).toArray())
+      .filter((item) => !topicId || item.topicId === topicId)
+      .map((item) => item.id);
+    await this.db.transaction('rw', [this.db.quizAttempts, this.db.topicProgress, this.db.syncOutbox], async () => {
+      await Promise.all([
+        this.db.quizAttempts.bulkDelete(attemptIds),
+        this.db.topicProgress.bulkDelete(progressIds),
+        this.db.syncOutbox.where('entityId').anyOf([...attemptIds, ...progressIds]).delete(),
+      ]);
+    });
+  }
   async listOralAttempts(profileId: string, topicId?: string) { const items=topicId ? await this.db.oralAttempts.where('[profileId+topicId]').equals([profileId,topicId]).toArray() : await this.db.oralAttempts.where('profileId').equals(profileId).toArray(); return sorted(items); }
   async saveOralAttempt(attempt: OralAttempt) { await this.db.oralAttempts.put(attempt); }
   async listPartnerAssessments(profileId: string, topicId?: string) { const items=topicId ? await this.db.partnerAssessments.where('[responderProfileId+topicId]').equals([profileId,topicId]).toArray() : await this.db.partnerAssessments.where('responderProfileId').equals(profileId).toArray(); return sorted(items); }

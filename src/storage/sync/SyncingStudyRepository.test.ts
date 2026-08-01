@@ -46,6 +46,7 @@ describe('SyncingStudyRepository', () => {
         if (!online) throw new Error('offline');
         received.set(operation.id, operation);
       },
+      resetPracticeStatistics: async () => undefined,
     };
     const repository = new SyncingStudyRepository(local, cloud, outbox, 'user-1');
     await repository.initialize();
@@ -65,6 +66,7 @@ describe('SyncingStudyRepository', () => {
     const cloud: CloudStudyRepository = {
       pull: async () => ({ ...empty, topicProgress: [progress] }),
       apply: async () => undefined,
+      resetPracticeStatistics: async () => undefined,
     };
     const repository = new SyncingStudyRepository(local, cloud, new MemoryOutbox(), 'user-1');
 

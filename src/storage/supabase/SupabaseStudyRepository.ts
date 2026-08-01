@@ -61,4 +61,15 @@ export class SupabaseStudyRepository implements CloudStudyRepository {
     const { error } = await table;
     if (error) throw error;
   }
+
+  async resetPracticeStatistics(topicId: string | undefined, attemptIds: string[]): Promise<void> {
+    const progressQuery = this.client.from('topic_progress').delete().eq('user_id', this.userId);
+    const quizzesQuery = this.client.from('quiz_attempts').delete().eq('user_id', this.userId);
+    const [progress, quizzes] = await Promise.all([
+      topicId ? progressQuery.eq('topic_id', topicId) : progressQuery,
+      topicId ? (attemptIds.length ? quizzesQuery.in('id', attemptIds) : Promise.resolve({ error: null })) : quizzesQuery,
+    ]);
+    const error = progress.error ?? quizzes.error;
+    if (error) throw error;
+  }
 }

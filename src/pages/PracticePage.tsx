@@ -1,4 +1,4 @@
-import { CheckCircle2, RefreshCcw, XCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle2, RefreshCcw, XCircle } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useProfiles } from '../app/providers/ProfileProvider';
@@ -7,7 +7,12 @@ import { topics } from '../content/topics';
 import { SECTION_LABELS, type QuizQuestion, type TopicSection } from '../entities/content/topic';
 import type { QuizAttempt, TopicStatus } from '../entities/progress/progress';
 import { QuizQuestionView } from '../features/quizzes/QuizQuestionView';
-import { PracticeHistory } from '../features/quizzes/PracticeHistory';
+import {
+  formatCorrectAnswer,
+  formatGivenAnswer,
+  PracticeHistory,
+} from '../features/quizzes/PracticeHistory';
+import { createInitialQuizAnswers } from '../features/quizzes/createInitialAnswers';
 import {
   buildQuestionBank,
   selectPracticeQuestions,
@@ -15,7 +20,11 @@ import {
 } from '../features/quizzes/questionBank';
 import { calculateQuizAnalytics } from '../features/quizzes/quizAnalytics';
 import { readPracticeTopicIds } from '../features/quizzes/practiceScope';
-import { isAnswerCorrect, type QuizAnswer } from '../features/quizzes/scoreQuiz';
+import {
+  isAnswerCorrect,
+  isQuestionAnswered,
+  type QuizAnswer,
+} from '../features/quizzes/scoreQuiz';
 import { Button } from '../shared/ui/Button';
 import { formatPercent } from '../shared/utils/format';
 import { createId } from '../shared/utils/id';
@@ -83,6 +92,9 @@ export function PracticePage() {
   const [ratings, setRatings] = useState<Record<string, RecallRating>>({});
   const [revealed, setRevealed] = useState<Set<string>>(new Set());
   const [result, setResult] = useState<number | null>(null);
+  const [validationMessage, setValidationMessage] = useState('');
+  const [resetTopicId, setResetTopicId] = useState(() => [...requestedTopics][0] ?? topics[0]!.id);
+  const [resetError, setResetError] = useState('');
 
   const scopedBank = useMemo(
     () =>
@@ -103,11 +115,19 @@ export function PracticePage() {
   );
 
   const nextSet = useCallback(() => {
-    setQuestions(makeSet(mode, scopedBank, statuses, recentIds));
-    setAnswers({});
+    const nextQuestions = makeSet(mode, scopedBank, statuses, recentIds);
+    setQuestions(nextQuestions);
+    setAnswers(
+      createInitialQuizAnswers(
+        nextQuestions
+          .filter((item) => item.kind === 'objective')
+          .map((item) => item.question as QuizQuestion),
+      ),
+    );
     setRatings({});
     setRevealed(new Set());
     setResult(null);
+    setValidationMessage('');
   }, [mode, recentIds, scopedBank, statuses]);
 
   useEffect(() => {
@@ -124,9 +144,11 @@ export function PracticePage() {
     nextSet();
   }, [nextSet]);
 
-  const complete = questions.every((item) =>
-    item.kind === 'free-recall' ? Boolean(ratings[item.id]) : answers[item.id] !== undefined,
-  );
+  const isAnswered = (item: QuestionBankItem) =>
+    item.kind === 'free-recall'
+      ? Boolean(ratings[item.id])
+      : isQuestionAnswered(item.question as QuizQuestion, answers[item.id]);
+  const complete = questions.every(isAnswered);
   const submit = async () => {
     if (!activeProfileId) return;
     const questionResults = questions.map((item) => {
@@ -182,8 +204,43 @@ export function PracticePage() {
       );
     }
     setResult(score);
+    setValidationMessage('');
     setAttempts(await repository.listQuizAttempts(activeProfileId));
     notifyDataChanged();
+  };
+
+  const finish = () => {
+    const missingIndex = questions.findIndex((item) => !isAnswered(item));
+    if (missingIndex >= 0) {
+      setValidationMessage(`Не заполнен вопрос ${missingIndex + 1}. Перенёс вас к нему.`);
+      const question = document.getElementById(`practice-question-${missingIndex + 1}`);
+      question?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      window.setTimeout(() => {
+        question?.querySelector<HTMLElement>('input, select, button')?.focus();
+      }, 350);
+      return;
+    }
+    void submit();
+  };
+
+  const resetStatistics = async (topicId?: string) => {
+    if (!activeProfileId) return;
+    const topic = topics.find((item) => item.id === topicId);
+    const target = topic ? `по теме ${topic.code} «${topic.originalText}»` : 'по всем темам';
+    if (!window.confirm(`Обнулить статистику ${target}? Отменить это действие нельзя.`)) return;
+    try {
+      await repository.resetPracticeStatistics(activeProfileId, topicId);
+      const [history, progress] = await Promise.all([
+        repository.listQuizAttempts(activeProfileId),
+        repository.listTopicProgress(activeProfileId),
+      ]);
+      setAttempts(history);
+      setStatuses(new Map(progress.map((item) => [item.topicId, item.status])));
+      setResetError('');
+      notifyDataChanged();
+    } catch (error) {
+      setResetError(error instanceof Error ? error.message : 'Не удалось обнулить статистику.');
+    }
   };
 
   return (
@@ -251,32 +308,34 @@ export function PracticePage() {
           <strong>{formatPercent(analytics.bySection['software-complexes'].accuracy)}</strong>
         </article>
       </section>
-      <PracticeHistory attempts={attempts} bank={bank} />
       <section className="quiz-card">
         {questions.map((item, index) => (
-          <div className="quiz-question" key={item.id}>
+          <div
+            className={`quiz-question ${validationMessage && !isAnswered(item) ? 'quiz-question--missing' : ''}`}
+            id={`practice-question-${index + 1}`}
+            key={item.id}
+          >
             <span className="question-number">
-              {index + 1}. Тема {item.topicCode}
+              {index + 1}. Тема {item.topicCode} · {item.topicTitle}
             </span>
             {item.question.type === 'free-recall' ? (
               <div>
                 <h3>{item.question.prompt}</h3>
-                <p className="notice">
-                  Достаточно двух-трёх ясных фраз и одного простого примера.
-                </p>
+                <p className="recall-hint">Сначала сформулируйте ответ сами, затем сверьтесь с разбором.</p>
                 {!revealed.has(item.id) ? (
                   <Button
                     variant="secondary"
                     onClick={() => setRevealed((current) => new Set(current).add(item.id))}
                   >
-                    Показать ориентир
+                    Свериться с разбором
                   </Button>
                 ) : (
-                  <div className="answer-feedback answer-feedback--correct">
+                  <div className="recall-guide">
                     <div>
-                      <strong>Простой ориентир</strong>
+                      <span className="eyebrow">Как можно ответить</span>
                       <p>{item.question.modelAnswer}</p>
-                      <ul>
+                      <strong>Что стоит упомянуть</strong>
+                      <ul className="key-point-chips">
                         {item.question.checklist.map((point) => (
                           <li key={point}>{point}</li>
                         ))}
@@ -317,6 +376,7 @@ export function PracticePage() {
                   question={item.question}
                   answer={answers[item.id]}
                   disabled={result !== null}
+                  showResult={result !== null}
                   onChange={(answer) =>
                     setAnswers((current) => ({ ...current, [item.id]: answer }))
                   }
@@ -337,6 +397,12 @@ export function PracticePage() {
                           : 'Разберите ещё раз'}
                       </strong>
                       <p>{item.question.explanation}</p>
+                      <div className="answer-comparison">
+                        <p><span>Ваш ответ</span>{formatGivenAnswer(item.question, answers[item.id])}</p>
+                        {!isAnswerCorrect(item.question, answers[item.id]) && (
+                          <p><span>Правильный ответ</span>{formatCorrectAnswer(item.question)}</p>
+                        )}
+                      </div>
                       <Link to={`/topics/${item.topicId}`}>Открыть простое объяснение темы</Link>
                     </div>
                   </div>
@@ -346,9 +412,15 @@ export function PracticePage() {
           </div>
         ))}
         {result === null ? (
-          <Button disabled={!complete || !questions.length} onClick={() => void submit()}>
-            Завершить и посчитать
-          </Button>
+          <div className="quiz-actions">
+            {validationMessage && (
+              <p className="form-error" role="alert"><AlertCircle size={18} /> {validationMessage}</p>
+            )}
+            <Button disabled={!questions.length} onClick={finish}>
+              Завершить и посчитать
+            </Button>
+            {!complete && <span className="muted">Ответьте на все вопросы — при пропуске подскажем, где он.</span>}
+          </div>
         ) : (
           <div className="quiz-result">
             <strong>{formatPercent(result)}</strong>
@@ -363,6 +435,26 @@ export function PracticePage() {
           </div>
         )}
       </section>
+      <PracticeHistory attempts={attempts} bank={bank} />
+      <details className="statistics-reset">
+        <summary>Управление статистикой</summary>
+        <div>
+          <p>Можно начать заново по одной теме или очистить все результаты тренировок.</p>
+          <label className="field">
+            <span className="field__label">Конкретная тема</span>
+            <select value={resetTopicId} onChange={(event) => setResetTopicId(event.target.value)}>
+              {topics.map((topic) => (
+                <option key={topic.id} value={topic.id}>Тема {topic.code} · {topic.originalText}</option>
+              ))}
+            </select>
+          </label>
+          {resetError && <p className="form-error" role="alert"><AlertCircle size={18} /> {resetError}</p>}
+          <div className="button-row">
+            <Button variant="danger" onClick={() => void resetStatistics(resetTopicId)}>Обнулить выбранную тему</Button>
+            <Button variant="danger" onClick={() => void resetStatistics()}>Обнулить всё</Button>
+          </div>
+        </div>
+      </details>
     </>
   );
 }

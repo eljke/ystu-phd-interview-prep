@@ -74,6 +74,7 @@ describe('practice history answers', () => {
             id: 'topic-3-14:q1',
             topicId: 'topic-3-14',
             topicCode: '3.14',
+            topicTitle: 'Таблицы стилей. Сценарии JavaScript. Фреймворки.',
             section: 'software-complexes',
             kind: 'objective',
             question,
@@ -85,8 +86,8 @@ describe('practice history answers', () => {
 
     fireEvent.click(screen.getByText(/01\.08\.2026/));
     expect(screen.getByText('Ошибка')).toBeInTheDocument();
-    expect(screen.getByText(/Ваш ответ:/).parentElement).toHaveTextContent('Задаёт только цвет');
-    expect(screen.getByText(/Правильный ответ:/).parentElement).toHaveTextContent(
+    expect(screen.getByText('Ваш ответ').parentElement).toHaveTextContent('Задаёт только цвет');
+    expect(screen.getByText('Правильный ответ').parentElement).toHaveTextContent(
       'Реагирует на события',
     );
   });

@@ -6,7 +6,8 @@ describe('question bank', () => {
   it('covers every programme topic with several source-grounded questions', () => {
     const bank = buildQuestionBank(topics);
     expect(new Set(bank.map((item) => item.topicId)).size).toBe(topics.length);
-    expect(bank.length).toBeGreaterThan(200);
+    expect(bank.length).toBeGreaterThan(180);
+    expect(bank.some((item) => item.id.endsWith(':key-points'))).toBe(false);
     expect(bank.filter((item) => item.question.type === 'fill-blank')).toHaveLength(topics.length);
     expect(bank.filter((item) => item.question.type === 'ordering')).toHaveLength(12);
     expect(bank.every((item) => item.sourceTitles.length > 0)).toBe(true);
@@ -14,9 +15,7 @@ describe('question bank', () => {
       const formats = new Set(
         bank.filter((item) => item.topicId === topic.id).map((item) => item.question.type),
       );
-      expect([...formats]).toEqual(
-        expect.arrayContaining(['single-choice', 'multiple-choice', 'matching', 'free-recall']),
-      );
+      expect([...formats]).toEqual(expect.arrayContaining(['single-choice', 'matching', 'free-recall']));
     }
   });
 
@@ -40,7 +39,8 @@ describe('question bank', () => {
     const selected = selectPracticeQuestions({ bank, count: 5, random: () => 0.42 });
 
     expect(selected).toHaveLength(5);
-    expect(new Set(selected.map((item) => item.question.type)).size).toBe(5);
+    expect(new Set(selected.map((item) => item.question.type)).size).toBeGreaterThanOrEqual(4);
+    expect(new Set(selected.map((item) => item.question.prompt)).size).toBe(selected.length);
     expect(
       selected.some((item) => item.question.prompt.startsWith('Как проще всего объяснить')),
     ).toBe(false);

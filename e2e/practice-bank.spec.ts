@@ -8,16 +8,14 @@ test('one programme topic is practiced through several question formats', async 
   await page.getByRole('link', { name: /Закрепить разными вопросами/ }).click();
 
   await expect(page.getByRole('heading', { name: 'Тренировка без зубрёжки' })).toBeVisible();
-  await expect(page.locator('.quiz-question')).toHaveCount(5);
+  await expect(page.locator('.quiz-question')).toHaveCount(4);
+  await expect(
+    page.getByText(/Тема 1\.1 · Определение понятия «модель»/).first(),
+  ).toBeVisible();
   await expect(page.getByText('Соберите тему 1.1: что здесь что означает?')).toBeVisible();
   await expect(
-    page.getByRole('group', {
-      name: 'Отметьте верные утверждения по теме 1.1.',
-    }),
-  ).toBeVisible();
-  await expect(
     page.getByRole('heading', {
-      name: 'Зачем вообще строить модель, если можно изучать реальный объект?',
+      name: /Расскажите своими словами: Определение понятия «модель»/,
     }),
   ).toBeVisible();
 });

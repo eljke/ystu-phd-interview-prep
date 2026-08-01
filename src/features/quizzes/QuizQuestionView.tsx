@@ -6,18 +6,23 @@ export function QuizQuestionView({
   answer,
   onChange,
   disabled,
+  showResult,
 }: {
   question: QuizQuestion;
   answer: QuizAnswer | undefined;
   onChange: (answer: QuizAnswer) => void;
   disabled?: boolean;
+  showResult?: boolean;
 }) {
   if (question.type === 'single-choice')
     return (
       <fieldset className="quiz-options" disabled={disabled}>
         <legend>{question.prompt}</legend>
         {question.options.map((option) => (
-          <label key={option.id}>
+          <label
+            className={showResult ? (option.id === question.correctOptionId ? 'quiz-option--correct' : answer === option.id ? 'quiz-option--wrong' : '') : ''}
+            key={option.id}
+          >
             <input
               type="radio"
               name={question.id}
@@ -35,7 +40,10 @@ export function QuizQuestionView({
       <fieldset className="quiz-options" disabled={disabled}>
         <legend>{question.prompt}</legend>
         {question.options.map((option) => (
-          <label key={option.id}>
+          <label
+            className={showResult ? (question.correctOptionIds.includes(option.id) ? 'quiz-option--correct' : values.includes(option.id) ? 'quiz-option--wrong' : '') : ''}
+            key={option.id}
+          >
             <input
               type="checkbox"
               checked={values.includes(option.id)}
@@ -84,10 +92,12 @@ export function QuizQuestionView({
               <span>
                 {index + 1}. {item?.text}
               </span>
-              <button disabled={disabled || index === 0} onClick={() => move(index, -1)}>
+              <button type="button" aria-label={`Поднять «${item?.text}»`} disabled={disabled || index === 0} onClick={() => move(index, -1)}>
                 ↑
               </button>
               <button
+                type="button"
+                aria-label={`Опустить «${item?.text}»`}
                 disabled={disabled || index === values.length - 1}
                 onClick={() => move(index, 1)}
               >
@@ -100,6 +110,7 @@ export function QuizQuestionView({
     );
   }
   const mapping = !Array.isArray(answer) && typeof answer === 'object' ? answer : {};
+  const selectedRightIds = new Set(Object.values(mapping));
   return (
     <div className="matching">
       <h3>{question.prompt}</h3>
@@ -113,7 +124,11 @@ export function QuizQuestionView({
           >
             <option value="">Выберите</option>
             {question.right.map((right) => (
-              <option key={right.id} value={right.id}>
+              <option
+                key={right.id}
+                value={right.id}
+                disabled={selectedRightIds.has(right.id) && mapping[left.id] !== right.id}
+              >
                 {right.text}
               </option>
             ))}

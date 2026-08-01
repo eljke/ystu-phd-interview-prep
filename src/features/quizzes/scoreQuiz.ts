@@ -38,3 +38,17 @@ export function isAnswerCorrect(question: QuizQuestion, answer: QuizAnswer | und
       );
   }
 }
+
+export function isQuestionAnswered(question: QuizQuestion, answer: QuizAnswer | undefined): boolean {
+  if (answer === undefined) return false;
+  if (question.type === 'fill-blank') return typeof answer === 'string' && answer.trim().length > 0;
+  if (question.type === 'multiple-choice') return Array.isArray(answer) && answer.length > 0;
+  if (question.type === 'ordering') return Array.isArray(answer) && answer.length === question.items.length;
+  if (question.type === 'matching')
+    return (
+      !Array.isArray(answer) &&
+      typeof answer === 'object' &&
+      question.left.every((item) => Boolean(answer[item.id]))
+    );
+  return typeof answer === 'string' && answer.length > 0;
+}

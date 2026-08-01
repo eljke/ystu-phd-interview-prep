@@ -98,6 +98,14 @@ export class SyncingStudyRepository implements StudyRepository {
     await this.local.saveQuizAttempt(attempt);
     await this.enqueue('quiz-attempt', attempt.id, attempt);
   }
+  async resetPracticeStatistics(profileId: string, topicId?: string) {
+    const attempts = await this.local.listQuizAttempts(profileId);
+    const attemptIds = attempts
+      .filter((attempt) => !topicId || attempt.topicId === topicId || attempt.questionResults?.some((item) => item.topicId === topicId))
+      .map((attempt) => attempt.id);
+    await this.cloud.resetPracticeStatistics(topicId, attemptIds);
+    await this.local.resetPracticeStatistics(profileId, topicId);
+  }
   listOralAttempts(profileId: string, topicId?: string) {
     return this.local.listOralAttempts(profileId, topicId);
   }
