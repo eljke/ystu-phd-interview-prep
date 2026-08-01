@@ -10,5 +10,24 @@ import { ProgressPage } from '../pages/ProgressPage';
 import { QuizPage } from '../pages/QuizPage';
 import { TopicPage } from '../pages/TopicPage';
 import { TopicsPage } from '../pages/TopicsPage';
+import { AccessAdminPage } from '../features/admin/AccessAdminPage';
 
-export function AppRoutes(){return <Routes><Route element={<AppShell/>}><Route index element={<DashboardPage/>}/><Route path="topics" element={<TopicsPage/>}/><Route path="topics/:topicId" element={<TopicPage/>}/><Route path="quiz/:topicId" element={<QuizPage/>}/><Route path="oral" element={<OralExamPage/>}/><Route path="pair" element={<PairSessionPage/>}/><Route path="progress" element={<ProgressPage/>}/><Route path="backup" element={<BackupPage/>}/><Route path="about" element={<AboutPage/>}/><Route path="content-audit" element={<ContentAuditPage/>}/></Route></Routes>}
+export function AppRoutes() {
+  return (
+    <Routes>
+      <Route element={<AppShell />}>
+        <Route index element={<DashboardPage />} />
+        <Route path="topics" element={<TopicsPage />} />
+        <Route path="topics/:topicId" element={<TopicPage />} />
+        <Route path="quiz/:topicId" element={<QuizPage />} />
+        <Route path="oral" element={<OralExamPage />} />
+        <Route path="pair" element={<PairSessionPage />} />
+        <Route path="progress" element={<ProgressPage />} />
+        <Route path="backup" element={<BackupPage />} />
+        <Route path="about" element={<AboutPage />} />
+        <Route path="admin/access" element={<AccessAdminPage />} />
+        <Route path="content-audit" element={<ContentAuditPage />} />
+      </Route>
+    </Routes>
+  );
+}
