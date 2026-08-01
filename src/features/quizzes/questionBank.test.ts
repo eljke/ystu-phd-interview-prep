@@ -7,6 +7,8 @@ describe('question bank', () => {
     const bank = buildQuestionBank(topics);
     expect(new Set(bank.map((item) => item.topicId)).size).toBe(topics.length);
     expect(bank.length).toBeGreaterThan(250);
+    expect(bank.filter((item) => item.question.type === 'fill-blank')).toHaveLength(topics.length);
+    expect(bank.filter((item) => item.question.type === 'ordering')).toHaveLength(12);
     expect(bank.every((item) => item.sourceTitles.length > 0)).toBe(true);
     for (const topic of topics) {
       const formats = new Set(

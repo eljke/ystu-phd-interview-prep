@@ -5,6 +5,8 @@ import {
   type TopicSection,
 } from '../../entities/content/topic';
 import type { TopicStatus } from '../../entities/progress/progress';
+import { createOrderingQuestion } from './orderingQuestions';
+import { createTermQuestion } from './termQuestions';
 
 export interface QuestionBankItem {
   id: string;
@@ -49,6 +51,38 @@ export function buildQuestionBank(topics: readonly Topic[]): QuestionBankItem[] 
       question: { ...question, id: `${topic.id}:${question.id}` },
       sourceTitles: topic.sources.map((source) => source.title),
     }));
+    const termQuestion = topic.quiz.some((question) => question.type === 'fill-blank')
+      ? null
+      : createTermQuestion(topic);
+    const term = termQuestion
+      ? [
+          {
+            id: termQuestion.id,
+            topicId: topic.id,
+            topicCode: topic.code,
+            section: topic.section,
+            kind: 'objective' as const,
+            question: termQuestion,
+            sourceTitles: topic.sources.map((source) => source.title),
+          },
+        ]
+      : [];
+    const orderingQuestion = topic.quiz.some((question) => question.type === 'ordering')
+      ? null
+      : createOrderingQuestion(topic);
+    const ordering = orderingQuestion
+      ? [
+          {
+            id: orderingQuestion.id,
+            topicId: topic.id,
+            topicCode: topic.code,
+            section: topic.section,
+            kind: 'objective' as const,
+            question: orderingQuestion,
+            sourceTitles: topic.sources.map((source) => source.title),
+          },
+        ]
+      : [];
     const sectionPoints = bySection.get(topic.section) ?? [];
     const generated = topic.keyPoints.map((point, index): QuestionBankItem => {
       const distractors = rotate(sectionPoints, index + 1)
@@ -156,7 +190,7 @@ export function buildQuestionBank(topics: readonly Topic[]): QuestionBankItem[] 
       },
       sourceTitles: topic.sources.map((source) => source.title),
     };
-    return [...authored, ...generated, multiple, matching, recall];
+    return [...authored, ...term, ...ordering, ...generated, multiple, matching, recall];
   });
 }
 
