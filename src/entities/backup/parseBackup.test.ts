@@ -43,6 +43,15 @@ describe('parseBackup', () => {
     expect(parseBackup(JSON.stringify(valid)).profiles).toHaveLength(2);
   });
 
+  it('accepts a single-profile version 2 cloud backup', () => {
+    const cloudBackup: BackupSnapshot = {
+      ...valid,
+      formatVersion: 2,
+      profiles: valid.profiles.slice(0, 1),
+    };
+    expect(parseBackup(JSON.stringify(cloudBackup)).profiles).toHaveLength(1);
+  });
+
   it('preserves a valid checksum after structural parsing', async () => {
     const exported = await withChecksum({
       ...valid,

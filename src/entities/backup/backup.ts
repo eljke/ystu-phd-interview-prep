@@ -9,7 +9,7 @@ import type {
 } from '../progress/progress';
 
 export interface BackupSnapshot {
-  formatVersion: 1;
+  formatVersion: 1 | 2;
   exportedAt: string;
   contentVersion: string;
   checksum: string;

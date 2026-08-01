@@ -22,14 +22,7 @@ const topicProgress = z.object({
   profileId: nonEmpty,
   topicId: nonEmpty,
   viewedSections: z.array(
-    z.enum([
-      'shortAnswer',
-      'extendedAnswer',
-      'keyPoints',
-      'formulas',
-      'example',
-      'commonMistakes',
-    ]),
+    z.enum(['shortAnswer', 'extendedAnswer', 'keyPoints', 'formulas', 'example', 'commonMistakes']),
   ),
   manualReview: z.boolean(),
   status: z.enum(['not-started', 'studying', 'can-answer', 'mastered', 'needs-review']),
@@ -96,11 +89,11 @@ const settings = z.object({
 
 const backupSchema = z
   .object({
-    formatVersion: z.literal(1),
+    formatVersion: z.union([z.literal(1), z.literal(2)]),
     exportedAt: timestamp,
     contentVersion: nonEmpty,
     checksum: z.string().regex(/^[a-f0-9]{64}$/i),
-    profiles: z.array(profile).length(2),
+    profiles: z.array(profile).min(1).max(2),
     topicProgress: z.array(topicProgress),
     quizAttempts: z.array(quizAttempt),
     oralAttempts: z.array(oralAttempt),
@@ -114,7 +107,12 @@ const backupSchema = z
     };
     const profileIds = new Set(snapshot.profiles.map((item) => item.id));
 
-    if (profileIds.size !== 2) addIssue(['profiles'], 'Profile identifiers must be unique');
+    if (snapshot.formatVersion === 1 && snapshot.profiles.length !== 2) {
+      addIssue(['profiles'], 'Version 1 backups must contain two profiles');
+    }
+    if (profileIds.size !== snapshot.profiles.length) {
+      addIssue(['profiles'], 'Profile identifiers must be unique');
+    }
     if (snapshot.settings.activeProfileId && !profileIds.has(snapshot.settings.activeProfileId)) {
       addIssue(['settings', 'activeProfileId'], 'Active profile is missing');
     }

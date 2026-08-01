@@ -12,7 +12,7 @@ function Application() {
   const { profiles } = useProfiles();
   return (
     <>
-      {profiles.length === 2 ? <AppRoutes /> : <ProfileSetup />}
+      {profiles.length > 0 ? <AppRoutes /> : <ProfileSetup />}
       <UpdatePrompt />
     </>
   );

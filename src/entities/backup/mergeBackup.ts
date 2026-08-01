@@ -15,10 +15,7 @@ function normalizeName(value: string): string {
   return value.trim().toLocaleLowerCase('ru');
 }
 
-function alignIncomingProfiles(
-  local: BackupSnapshot,
-  incoming: BackupSnapshot,
-): BackupSnapshot {
+function alignIncomingProfiles(local: BackupSnapshot, incoming: BackupSnapshot): BackupSnapshot {
   const localById = new Map(local.profiles.map((profile) => [profile.id, profile]));
   const localByName = new Map(
     local.profiles.map((profile) => [normalizeName(profile.name), profile]),
@@ -119,10 +116,7 @@ export function mergeBackup(local: BackupSnapshot, incoming: BackupSnapshot): Me
   const topicProgress = merge(local.topicProgress, alignedIncoming.topicProgress);
   const quizAttempts = merge(local.quizAttempts, alignedIncoming.quizAttempts);
   const oralAttempts = merge(local.oralAttempts, alignedIncoming.oralAttempts);
-  const partnerAssessments = merge(
-    local.partnerAssessments,
-    alignedIncoming.partnerAssessments,
-  );
+  const partnerAssessments = merge(local.partnerAssessments, alignedIncoming.partnerAssessments);
   const studySessions = merge(local.studySessions, alignedIncoming.studySessions);
   const settings =
     alignedIncoming.settings.updatedAt > local.settings.updatedAt
@@ -133,7 +127,7 @@ export function mergeBackup(local: BackupSnapshot, incoming: BackupSnapshot): Me
     newerFromImport,
     keptLocal,
     merged: {
-      formatVersion: 1,
+      formatVersion: local.formatVersion,
       exportedAt: new Date().toISOString(),
       contentVersion: local.contentVersion,
       checksum: 'pending',
