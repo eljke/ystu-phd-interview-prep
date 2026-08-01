@@ -12,7 +12,7 @@ test('one programme topic is practiced through several question formats', async 
   await expect(page.getByText('Соберите тему 1.1: что здесь что означает?')).toBeVisible();
   await expect(
     page.getByRole('group', {
-      name: 'Какие три утверждения здесь по делу, а какие относятся к другой теме?',
+      name: 'Отметьте верные утверждения по теме 1.1.',
     }),
   ).toBeVisible();
   await expect(

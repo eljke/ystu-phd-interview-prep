@@ -45,4 +45,21 @@ describe('question bank', () => {
       selected.some((item) => item.question.prompt.startsWith('Как проще всего объяснить')),
     ).toBe(false);
   });
+
+  it('covers every part of PDF topic 3.14 in plain language', () => {
+    const topic = topics.find((item) => item.code === '3.14')!;
+    const prompts = topic.quiz.map((question) => question.prompt);
+
+    expect(topic.originalText).toBe('Таблицы стилей. Сценарии JavaScript. Фреймворки.');
+    expect(prompts).toEqual(
+      expect.arrayContaining([
+        'За что прежде всего отвечает CSS?',
+        'Что такое сценарий JavaScript?',
+        'Что такое фреймворк?',
+        'Зачем в CSS нужен селектор?',
+        'Что может делать сценарий JavaScript на странице?',
+        'Найдите неверное утверждение о фреймворке.',
+      ]),
+    );
+  });
 });

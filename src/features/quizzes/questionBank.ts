@@ -90,7 +90,7 @@ export function buildQuestionBank(topics: readonly Topic[]): QuestionBankItem[] 
       question: {
         id: multipleId,
         type: 'multiple-choice',
-        prompt: 'Какие три утверждения здесь по делу, а какие относятся к другой теме?',
+        prompt: `Отметьте верные утверждения по теме ${topic.code}.`,
         explanation: `Опорные идеи: ${selectedPoints.map((point) => point.title).join(', ')}.`,
         keyPointIds: selectedPoints.map((point) => point.id),
         options: [
