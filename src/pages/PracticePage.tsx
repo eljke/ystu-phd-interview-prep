@@ -7,6 +7,7 @@ import { topics } from '../content/topics';
 import { SECTION_LABELS, type QuizQuestion, type TopicSection } from '../entities/content/topic';
 import type { QuizAttempt, TopicStatus } from '../entities/progress/progress';
 import { QuizQuestionView } from '../features/quizzes/QuizQuestionView';
+import { PracticeHistory } from '../features/quizzes/PracticeHistory';
 import {
   buildQuestionBank,
   selectPracticeQuestions,
@@ -250,6 +251,7 @@ export function PracticePage() {
           <strong>{formatPercent(analytics.bySection['software-complexes'].accuracy)}</strong>
         </article>
       </section>
+      <PracticeHistory attempts={attempts} bank={bank} />
       <section className="quiz-card">
         {questions.map((item, index) => (
           <div className="quiz-question" key={item.id}>
