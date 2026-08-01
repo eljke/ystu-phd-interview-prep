@@ -13,6 +13,7 @@ import {
   type QuestionBankItem,
 } from '../features/quizzes/questionBank';
 import { calculateQuizAnalytics } from '../features/quizzes/quizAnalytics';
+import { readPracticeTopicIds } from '../features/quizzes/practiceScope';
 import { isAnswerCorrect, type QuizAnswer } from '../features/quizzes/scoreQuiz';
 import { Button } from '../shared/ui/Button';
 import { formatPercent } from '../shared/utils/format';
@@ -59,7 +60,7 @@ function makeSet(
 
 export function PracticePage() {
   const [searchParams] = useSearchParams();
-  const requestedTopic = searchParams.get('topic');
+  const requestedTopics = useMemo(() => readPracticeTopicIds(searchParams), [searchParams]);
   const { activeProfileId } = useProfiles();
   const { repository, notifyDataChanged } = useStudyRepository();
   const [mode, setMode] = useState<PracticeMode>('mixed');
@@ -76,10 +77,10 @@ export function PracticePage() {
     () =>
       bank.filter(
         (item) =>
-          (!requestedTopic || item.topicId === requestedTopic) &&
+          (!requestedTopics.size || requestedTopics.has(item.topicId)) &&
           (section === 'all' || item.section === section),
       ),
-    [requestedTopic, section],
+    [requestedTopics, section],
   );
   const analytics = useMemo(() => calculateQuizAnalytics(attempts, topics), [attempts]);
   const recentIds = useMemo(
@@ -135,13 +136,13 @@ export function PracticePage() {
     await repository.saveQuizAttempt({
       id: createId('practice'),
       profileId: activeProfileId,
-      topicId: requestedTopic ?? 'practice-mixed',
+      topicId: requestedTopics.size === 1 ? [...requestedTopics][0]! : 'practice-mixed',
       correct: questionResults.filter((item) => item.correct).length,
       total: questions.length,
       score,
       answers,
       questionResults,
-      mode: requestedTopic ? 'topic' : mode,
+      mode: requestedTopics.size ? 'topic' : mode,
       completedAt: now,
       updatedAt: now,
     });
@@ -185,7 +186,7 @@ export function PracticePage() {
           </p>
         </div>
       </header>
-      {!requestedTopic && (
+      {!requestedTopics.size && (
         <section className="info-card">
           <div className="button-row">
             {(

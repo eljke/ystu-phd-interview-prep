@@ -68,7 +68,7 @@ export function ProfileSetup() {
       </section>
       <aside className="onboarding__aside">
         <div><span className="big-number">43</span><p>официальные темы без добавленных экзаменационных вопросов</p></div>
-        <div><span className="big-number">2</span><p>режима проверки: мини-тест и устный ответ</p></div>
+        <div><span className="big-number">6</span><p>форматов вопросов: от выбора до короткого термина</p></div>
         <div><span className="big-number">∞</span><p>свободный темп: длинные занятия и дни отдыха</p></div>
       </aside>
     </main>
