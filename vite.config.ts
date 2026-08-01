@@ -21,7 +21,9 @@ export default defineConfig({
         background_color: '#f4f1e9',
         display: 'standalone',
         start_url: './',
-        icons: [{ src: 'icons/icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' }],
+        icons: [
+          { src: 'icons/icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' },
+        ],
       },
       workbox: {
         navigateFallback: 'index.html',
@@ -31,6 +33,7 @@ export default defineConfig({
     }),
   ],
   test: {
+    include: ['src/**/*.test.{ts,tsx}'],
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     css: true,

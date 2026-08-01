@@ -10,7 +10,10 @@ test('backup can be exported and validated before import', async ({ page }) => {
   const download = await downloadPromise;
   const path = await download.path();
   expect(path).not.toBeNull();
-  const snapshot = JSON.parse(await readFile(path!, 'utf8')) as { profiles: unknown[]; checksum: string };
+  const snapshot = JSON.parse(await readFile(path!, 'utf8')) as {
+    profiles: unknown[];
+    checksum: string;
+  };
   expect(snapshot.profiles).toHaveLength(2);
   expect(snapshot.checksum).toMatch(/^[a-f0-9]{64}$/);
   await page.locator('input[type=file]').setInputFiles(path!);

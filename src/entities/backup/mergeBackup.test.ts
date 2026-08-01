@@ -108,5 +108,5 @@ it('rejects merging backups that describe different participants', () => {
     { ...incoming.profiles[1]!, id: 'remote-b', name: 'Глеб' },
   ];
 
-  expect(() => mergeBackup(local, incoming)).toThrow('участников');
+  expect(() => mergeBackup(local, incoming)).toThrow('разным участникам');
 });
