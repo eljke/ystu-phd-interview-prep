@@ -17,18 +17,20 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({
   children,
   gateway: provided,
+  allowLocalAccess = import.meta.env.DEV || import.meta.env.VITE_ALLOW_LOCAL_ACCESS === 'true',
 }: {
   children: ReactNode;
   gateway?: AuthGateway | null | undefined;
+  allowLocalAccess?: boolean;
 }) {
   const gateway = useMemo(() => {
     if (provided !== undefined) return provided;
     const client = getSupabaseClient();
     return client ? new SupabaseAuthGateway(client) : null;
   }, [provided]);
-  const [status, setStatus] = useState<'loading' | 'unauthenticated' | 'allowed' | 'denied'>(
-    gateway ? 'loading' : 'allowed',
-  );
+  const [status, setStatus] = useState<
+    'loading' | 'unauthenticated' | 'allowed' | 'denied' | 'unconfigured'
+  >(gateway ? 'loading' : allowLocalAccess ? 'allowed' : 'unconfigured');
   const [session, setSession] = useState<AuthSession | null>(null);
   const [role, setRole] = useState<'member' | 'admin' | null>(null);
   const [message, setMessage] = useState('');
@@ -80,6 +82,16 @@ export function AuthProvider({
     );
   if (gateway && status === 'unauthenticated') return <LoginPage gateway={gateway} />;
   if (status === 'denied') return <AccessDeniedPage message={message} />;
+  if (status === 'unconfigured')
+    return (
+      <main className="center-screen">
+        <section className="dialog">
+          <p className="eyebrow">YSTU · закрытый доступ</p>
+          <h1>Облачный вход ещё не настроен</h1>
+          <p>Приложение закрыто до подключения GitHub OAuth и whitelist.</p>
+        </section>
+      </main>
+    );
 
   const value: AuthContextValue = {
     session,
@@ -89,7 +101,7 @@ export function AuthProvider({
       if (gateway) await gateway.signOut();
       setSession(null);
       setRole(null);
-      setStatus(gateway ? 'unauthenticated' : 'allowed');
+      setStatus(gateway ? 'unauthenticated' : allowLocalAccess ? 'allowed' : 'unconfigured');
     },
   };
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

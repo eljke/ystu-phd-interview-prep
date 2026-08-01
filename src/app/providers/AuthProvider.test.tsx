@@ -31,6 +31,18 @@ describe('AuthProvider', () => {
     expect(screen.getByText('content:none:false')).toBeInTheDocument();
   });
 
+  it('fails closed in production when cloud is unconfigured', () => {
+    const view = render(
+      <AuthProvider gateway={null} allowLocalAccess={false}>
+        <Consumer />
+      </AuthProvider>,
+    );
+    expect(
+      screen.getByRole('heading', { name: 'Облачный вход ещё не настроен' }),
+    ).toBeInTheDocument();
+    expect(view.container).not.toHaveTextContent('content:none:false');
+  });
+
   it('asks an unauthenticated user to sign in through GitHub', async () => {
     render(
       <AuthProvider gateway={gateway(null, { status: 'denied', message: '' })}>

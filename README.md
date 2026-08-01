@@ -33,7 +33,7 @@ npm run supabase:reset
 npm run dev
 ```
 
-Локально приложение допускает работу без Supabase-конфига, чтобы контент и интерфейс можно было разрабатывать офлайн. Production-деплой без облачного конфига намеренно завершается ошибкой.
+Локально приложение допускает работу без Supabase-конфига, чтобы контент и интерфейс можно было разрабатывать офлайн. Production без облачного конфига работает в режиме fail-closed: показывает служебный экран и не открывает материалы без whitelist.
 
 ## Проверки
 
@@ -69,7 +69,7 @@ set github_login = excluded.github_login, role = 'admin', revoked_at = null;
 - `VITE_SUPABASE_URL` — Project URL;
 - `VITE_SUPABASE_PUBLISHABLE_KEY` — publishable key проекта.
 
-В `Settings → Pages` выберите source `GitHub Actions`. Каждый push в `master` проверяет production-конфиг, выполняет весь frontend verification и публикует `dist`. CI отдельно поднимает чистый локальный Supabase и запускает SQL/RLS-тесты.
+В `Settings → Pages` выберите source `GitHub Actions`. Каждый push в `master` проверяет заданный production-конфиг, выполняет весь frontend verification и публикует `dist`. Если переменные ещё не заданы, публикуется только закрытый служебный экран. CI отдельно поднимает чистый локальный Supabase и запускает SQL/RLS-тесты.
 
 ## Данные и источник
 
