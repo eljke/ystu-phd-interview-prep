@@ -54,10 +54,13 @@ npm run e2e:chromium    # пользовательские сценарии в C
 6. Один раз добавьте первоначального администратора через SQL Editor:
 
 ```sql
-insert into public.access_entries (github_id, github_login, role, granted_by)
-values (73737815, 'eljke', 'admin', null)
-on conflict (github_id) do update
-set github_login = excluded.github_login, role = 'admin', revoked_at = null;
+insert into public.access_entries (github_user_id, github_login, role)
+values (73737815, 'eljke', 'admin')
+on conflict (github_user_id) do update
+set github_login = excluded.github_login,
+    role = 'admin',
+    active = true,
+    updated_at = now();
 ```
 
 После этого остальные логины добавляются на экране «Доступ». Проверка выполняется по неизменяемому GitHub ID; логин хранится для отображения и может обновляться.
