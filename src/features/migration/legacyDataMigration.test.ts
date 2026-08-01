@@ -49,6 +49,8 @@ describe('legacy data migration', () => {
       'local-b',
       'github-user-1',
     ]);
+    expect((await repository.listProfiles()).find((profile) => profile.id === 'github-user-1'))
+      .toMatchObject({ name: 'anna-gh' });
     expect(await repository.getTopicProgress('github-user-1', 'topic-1')).toMatchObject({
       id: 'github-user-1:topic-1',
       profileId: 'github-user-1',

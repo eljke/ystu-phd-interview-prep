@@ -62,6 +62,16 @@ export function RepositoryProvider({
       session.userId,
     );
     await syncing.initialize();
+    const [profile] = await syncing.listProfiles();
+    const now = new Date().toISOString();
+    await syncing.saveProfile({
+      id: session.userId,
+      name: session.githubLogin,
+      createdAt: profile?.createdAt ?? now,
+      updatedAt: now,
+    });
+    const settings = await syncing.getSettings();
+    await syncing.saveSettings({ ...settings, activeProfileId: session.userId, updatedAt: now });
     setRepository(syncing);
     setStatus('ready');
   }, [resources, session]);

@@ -35,7 +35,7 @@ export function AppShell() {
   const { profiles, activeProfileId, setActiveProfileId } = useProfiles();
   const { theme, setTheme } = useTheme();
   const { noSaveMode } = useStudyRepository();
-  const { role, cloudEnabled, signOut } = useAuth();
+  const { session, role, cloudEnabled, signOut } = useAuth();
   const nextTheme = theme === 'system' ? 'dark' : theme === 'dark' ? 'light' : 'system';
   const themeLabel =
     theme === 'system' ? 'Системная тема' : theme === 'dark' ? 'Тёмная тема' : 'Светлая тема';
@@ -86,19 +86,26 @@ export function AppShell() {
           ))}
         </nav>
         <div className="sidebar__footer">
-          <label className="compact-field">
-            <span>Активный участник</span>
-            <select
-              value={activeProfileId}
-              onChange={(e) => void setActiveProfileId(e.target.value)}
-            >
-              {profiles.map((profile) => (
-                <option value={profile.id} key={profile.id}>
-                  {profile.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          {cloudEnabled && session ? (
+            <div className="compact-field">
+              <span>GitHub</span>
+              <strong>@{session.githubLogin}</strong>
+            </div>
+          ) : (
+            <label className="compact-field">
+              <span>Активный участник</span>
+              <select
+                value={activeProfileId}
+                onChange={(e) => void setActiveProfileId(e.target.value)}
+              >
+                {profiles.map((profile) => (
+                  <option value={profile.id} key={profile.id}>
+                    {profile.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           <button className="theme-button" onClick={() => void setTheme(nextTheme)}>
             {theme === 'dark' ? <Moon size={18} /> : <Sun size={18} />}
             <span>{themeLabel}</span>

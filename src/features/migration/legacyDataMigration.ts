@@ -41,7 +41,6 @@ export async function migrateLegacyProfile(
   if (!localProfileId) {
     await repository.saveProfile({ id: userId, name: githubLogin, createdAt: now, updatedAt: now });
   } else {
-    const preview = await previewLegacyProfile(repository, localProfileId);
     const [progress, quizzes, oral] = await Promise.all([
       repository.listTopicProgress(localProfileId),
       repository.listQuizAttempts(localProfileId),
@@ -49,7 +48,7 @@ export async function migrateLegacyProfile(
     ]);
     await repository.saveProfile({
       id: userId,
-      name: preview.profileName,
+      name: githubLogin,
       createdAt: now,
       updatedAt: now,
     });
