@@ -7,9 +7,6 @@ export function createInitialQuizAnswers(
   return Object.fromEntries(
     questions
       .filter((question) => question.type === 'ordering')
-      .map((question) => [
-        question.id,
-        question.items.map((item) => item.id),
-      ]),
+      .map((question) => [question.id, question.items.map((item) => item.id)]),
   );
 }

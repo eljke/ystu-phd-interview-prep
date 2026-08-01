@@ -9,5 +9,152 @@ import { useMasteryMap } from '../features/progress/useMasteryMap';
 import { ProgressBar } from '../shared/ui/ProgressBar';
 import { formatPercent } from '../shared/utils/format';
 
-const sections:TopicSection[]=['mathematical-modeling','numerical-methods','software-complexes'];
-export function ProgressPage(){const{profiles}=useProfiles();const a=useMasteryMap(profiles[0]?.id),b=useMasteryMap(profiles[1]?.id);const avg=(map:Map<string,{score:number}>,items=topics)=>items.reduce((sum,t)=>sum+(map.get(t.id)?.score??0),0)/items.length;const pairTopics=topics.map((topic)=>({topic,score:calculatePairReadiness(a.map.get(topic.id)?.score??0,b.map.get(topic.id)?.score??0)}));const pair=pairTopics.reduce((s,x)=>s+x.score,0)/topics.length;const mastered=pairTopics.filter((x)=>x.score>=0.72).length;return <><header className="page-header"><div><p className="eyebrow">Личная и общая картина</p><h1>Прогресс подготовки</h1><p>Готовность пары считается по более слабому результату каждого пункта. Это не официальный экзаменационный балл.</p></div></header><section className="progress-hero"><div className="progress-ring" style={{'--progress':`${Math.round(pair*100)}%`} as CSSProperties}><strong>{formatPercent(pair)}</strong><span>готовность пары</span></div><div className="progress-hero__stats"><article><Users/><div><span>{profiles[0]?.name}</span><strong>{formatPercent(avg(a.map))}</strong></div></article><article><Users/><div><span>{profiles[1]?.name}</span><strong>{formatPercent(avg(b.map))}</strong></div></article><article><Award/><div><span>Закреплено обоими</span><strong>{mastered} / 43</strong></div></article></div></section><section className="section-block"><div className="section-heading"><div><p className="eyebrow">По разделам</p><h2>Где сосредоточить усилия</h2></div></div><div className="section-table">{sections.map((section)=>{const items=topics.filter((t)=>t.section===section);const av=avg(a.map,items),bv=avg(b.map,items),pv=Math.min(av,bv);return <article key={section}><div><Target/><strong>{SECTION_LABELS[section]}</strong><span>{items.length} тем</span></div><div className="triple-progress"><label>{profiles[0]?.name}<ProgressBar value={av}/><b>{formatPercent(av)}</b></label><label>{profiles[1]?.name}<ProgressBar value={bv}/><b>{formatPercent(bv)}</b></label><label>Пара<ProgressBar value={pv}/><b>{formatPercent(pv)}</b></label></div></article>})}</div></section><section className="section-block"><div className="section-heading"><div><p className="eyebrow">Слабые места пары</p><h2>Темы с наименьшей готовностью</h2></div></div><div className="weak-list">{pairTopics.sort((x,y)=>x.score-y.score).slice(0,8).map(({topic,score})=><Link to={`/topics/${topic.id}`} key={topic.id}><span className="topic-code">{topic.code}</span><div><strong>{topic.originalText}</strong><ProgressBar value={score}/></div><b>{formatPercent(score)}</b></Link>)}</div></section><section className="notice"><CheckCircle2/><p><strong>Главная метрика:</strong> тема считается освоенной парой только тогда, когда оба участника могут по ней ответить.</p></section></>}
+const sections: TopicSection[] = [
+  'mathematical-modeling',
+  'numerical-methods',
+  'software-complexes',
+];
+export function ProgressPage() {
+  const { profiles } = useProfiles();
+  const a = useMasteryMap(profiles[0]?.id),
+    b = useMasteryMap(profiles[1]?.id);
+  const hasPair = profiles.length > 1;
+  const avg = (map: Map<string, { score: number }>, items = topics) =>
+    items.reduce((sum, t) => sum + (map.get(t.id)?.score ?? 0), 0) / items.length;
+  const pairTopics = topics.map((topic) => ({
+    topic,
+    score: hasPair
+      ? calculatePairReadiness(a.map.get(topic.id)?.score ?? 0, b.map.get(topic.id)?.score ?? 0)
+      : (a.map.get(topic.id)?.score ?? 0),
+  }));
+  const pair = pairTopics.reduce((s, x) => s + x.score, 0) / topics.length;
+  const mastered = pairTopics.filter((x) => x.score >= 0.72).length;
+  return (
+    <>
+      <header className="page-header">
+        <div>
+          <p className="eyebrow">Личная и общая картина</p>
+          <h1>Прогресс подготовки</h1>
+          <p>
+            {hasPair
+              ? 'Готовность пары считается по более слабому результату каждого пункта.'
+              : 'Здесь собрана ваша личная статистика по всей программе.'}{' '}
+            Это не официальный экзаменационный балл.
+          </p>
+        </div>
+      </header>
+      <section className="progress-hero">
+        <div
+          className="progress-ring"
+          style={{ '--progress': `${Math.round(pair * 100)}%` } as CSSProperties}
+        >
+          <strong>{formatPercent(pair)}</strong>
+          <span>{hasPair ? 'готовность пары' : 'личная готовность'}</span>
+        </div>
+        <div className="progress-hero__stats">
+          {hasPair && (
+            <article>
+              <Users />
+              <div>
+                <span>{profiles[0]?.name}</span>
+                <strong>{formatPercent(avg(a.map))}</strong>
+              </div>
+            </article>
+          )}
+          <article>
+            <Users />
+            <div>
+              <span>{profiles[1]?.name}</span>
+              <strong>{formatPercent(avg(b.map))}</strong>
+            </div>
+          </article>
+          <article>
+            <Award />
+            <div>
+              <span>{hasPair ? 'Закреплено обоими' : 'Закреплено'}</span>
+              <strong>{mastered} / 43</strong>
+            </div>
+          </article>
+        </div>
+      </section>
+      <section className="section-block">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">По разделам</p>
+            <h2>Где сосредоточить усилия</h2>
+          </div>
+        </div>
+        <div className="section-table">
+          {sections.map((section) => {
+            const items = topics.filter((t) => t.section === section);
+            const av = avg(a.map, items),
+              bv = avg(b.map, items),
+              pv = hasPair ? Math.min(av, bv) : av;
+            return (
+              <article key={section}>
+                <div>
+                  <Target />
+                  <strong>{SECTION_LABELS[section]}</strong>
+                  <span>{items.length} тем</span>
+                </div>
+                <div className="triple-progress">
+                  <label>
+                    {profiles[0]?.name}
+                    <ProgressBar value={av} />
+                    <b>{formatPercent(av)}</b>
+                  </label>
+                  {hasPair && (
+                    <label>
+                      {profiles[1]?.name}
+                      <ProgressBar value={bv} />
+                      <b>{formatPercent(bv)}</b>
+                    </label>
+                  )}
+                  {hasPair && (
+                    <label>
+                      Пара
+                      <ProgressBar value={pv} />
+                      <b>{formatPercent(pv)}</b>
+                    </label>
+                  )}
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      </section>
+      <section className="section-block">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">{hasPair ? 'Слабые места пары' : 'Ваши слабые места'}</p>
+            <h2>Темы с наименьшей готовностью</h2>
+          </div>
+        </div>
+        <div className="weak-list">
+          {pairTopics
+            .sort((x, y) => x.score - y.score)
+            .slice(0, 8)
+            .map(({ topic, score }) => (
+              <Link to={`/topics/${topic.id}`} key={topic.id}>
+                <span className="topic-code">{topic.code}</span>
+                <div>
+                  <strong>{topic.originalText}</strong>
+                  <ProgressBar value={score} />
+                </div>
+                <b>{formatPercent(score)}</b>
+              </Link>
+            ))}
+        </div>
+      </section>
+      <section className="notice">
+        <CheckCircle2 />
+        <p>
+          <strong>Главная метрика:</strong>{' '}
+          {hasPair
+            ? 'тема считается освоенной парой только тогда, когда оба участника могут по ней ответить.'
+            : 'процент растёт от регулярных попыток, а не от одного удачного угадывания.'}
+        </p>
+      </section>
+    </>
+  );
+}

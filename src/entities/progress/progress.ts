@@ -1,12 +1,7 @@
 export type TopicStatus = 'not-started' | 'studying' | 'can-answer' | 'mastered' | 'needs-review';
 
 export type ViewedSection =
-  | 'shortAnswer'
-  | 'extendedAnswer'
-  | 'keyPoints'
-  | 'formulas'
-  | 'example'
-  | 'commonMistakes';
+  'shortAnswer' | 'extendedAnswer' | 'keyPoints' | 'formulas' | 'example' | 'commonMistakes';
 
 export interface TopicProgress {
   id: string;
@@ -27,6 +22,13 @@ export interface QuizAttempt {
   total: number;
   score: number;
   answers: Record<string, unknown>;
+  questionResults?: Array<{
+    questionId: string;
+    topicId: string;
+    correct: boolean;
+    score?: number;
+  }>;
+  mode?: 'topic' | 'mixed' | 'section' | 'review' | 'objective' | 'recall';
   completedAt: string;
   updatedAt: string;
 }
@@ -59,11 +61,7 @@ export interface PartnerAssessment {
 }
 
 export type StudySessionMode =
-  | 'selected'
-  | 'random-section'
-  | 'responder-weak'
-  | 'pair-weak'
-  | 'mock-interview';
+  'selected' | 'random-section' | 'responder-weak' | 'pair-weak' | 'mock-interview';
 
 export interface StudySession {
   id: string;

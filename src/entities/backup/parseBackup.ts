@@ -38,6 +38,17 @@ const quizAttempt = z
     total: z.number().int().positive(),
     score: z.number().finite().min(0).max(1),
     answers: z.record(z.string(), z.unknown()),
+    questionResults: z
+      .array(
+        z.object({
+          questionId: nonEmpty,
+          topicId: nonEmpty,
+          correct: z.boolean(),
+          score: z.number().min(0).max(1).optional(),
+        }),
+      )
+      .optional(),
+    mode: z.enum(['topic', 'mixed', 'section', 'review', 'objective', 'recall']).optional(),
     completedAt: timestamp,
     updatedAt: timestamp,
   })

@@ -4,7 +4,7 @@ import { AboutPage } from '../pages/AboutPage';
 import { BackupPage } from '../pages/BackupPage';
 import { ContentAuditPage } from '../pages/ContentAuditPage';
 import { DashboardPage } from '../pages/DashboardPage';
-import { OralExamPage } from '../pages/OralExamPage';
+import { PracticePage } from '../pages/PracticePage';
 import { PairSessionPage } from '../pages/PairSessionPage';
 import { ProgressPage } from '../pages/ProgressPage';
 import { QuizPage } from '../pages/QuizPage';
@@ -20,7 +20,7 @@ export function AppRoutes() {
         <Route path="topics" element={<TopicsPage />} />
         <Route path="topics/:topicId" element={<TopicPage />} />
         <Route path="quiz/:topicId" element={<QuizPage />} />
-        <Route path="oral" element={<OralExamPage />} />
+        <Route path="practice" element={<PracticePage />} />
         <Route path="pair" element={<PairSessionPage />} />
         <Route path="progress" element={<ProgressPage />} />
         <Route path="backup" element={<BackupPage />} />

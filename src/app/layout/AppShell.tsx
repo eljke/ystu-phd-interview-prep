@@ -6,6 +6,7 @@ import {
   Home,
   Info,
   LogOut,
+  ListChecks,
   Menu,
   Moon,
   ShieldCheck,
@@ -23,7 +24,7 @@ import { useAuth } from '../providers/AuthProvider';
 const links = [
   { to: '/', label: 'Главная', icon: Home, end: true },
   { to: '/topics', label: 'Все темы', icon: BookOpen },
-  { to: '/oral', label: 'Устный ответ', icon: GraduationCap },
+  { to: '/practice', label: 'Тренировка', icon: ListChecks },
   { to: '/pair', label: 'Парная сессия', icon: Users },
   { to: '/progress', label: 'Прогресс', icon: ChartNoAxesCombined },
   { to: '/backup', label: 'Резервная копия', icon: DatabaseBackup },
