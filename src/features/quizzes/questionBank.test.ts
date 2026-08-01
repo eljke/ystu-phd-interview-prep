@@ -6,7 +6,7 @@ describe('question bank', () => {
   it('covers every programme topic with several source-grounded questions', () => {
     const bank = buildQuestionBank(topics);
     expect(new Set(bank.map((item) => item.topicId)).size).toBe(topics.length);
-    expect(bank.length).toBeGreaterThan(250);
+    expect(bank.length).toBeGreaterThan(200);
     expect(bank.filter((item) => item.question.type === 'fill-blank')).toHaveLength(topics.length);
     expect(bank.filter((item) => item.question.type === 'ordering')).toHaveLength(12);
     expect(bank.every((item) => item.sourceTitles.length > 0)).toBe(true);
@@ -33,5 +33,16 @@ describe('question bank', () => {
     expect(
       selected.every((item) => !bank.slice(0, 20).some((recent) => recent.id === item.id)),
     ).toBe(true);
+  });
+
+  it('keeps a single-topic set short and varied', () => {
+    const bank = buildQuestionBank(topics).filter((item) => item.topicCode === '1.2');
+    const selected = selectPracticeQuestions({ bank, count: 5, random: () => 0.42 });
+
+    expect(selected).toHaveLength(5);
+    expect(new Set(selected.map((item) => item.question.type)).size).toBe(5);
+    expect(
+      selected.some((item) => item.question.prompt.startsWith('Как проще всего объяснить')),
+    ).toBe(false);
   });
 });

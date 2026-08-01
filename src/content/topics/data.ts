@@ -1712,8 +1712,8 @@ export const topics: Topic[] = [
     ],
     "sources": [
       {
-        "title": "SciPy User Guide: Integration and ODEs",
-        "url": "https://docs.scipy.org/doc/scipy/tutorial/integrate.html",
+        "title": "SciPy User Guide: Interpolation",
+        "url": "https://docs.scipy.org/doc/scipy/tutorial/interpolate.html",
         "supports": [
           "shortAnswer",
           "topic-2-1-kp-1"
@@ -1724,6 +1724,15 @@ export const topics: Topic[] = [
         "url": "https://numerical.recipes/",
         "supports": [
           "shortAnswer",
+          "topic-2-1-kp-2"
+        ]
+      },
+      {
+        "title": "Skillfactory: аппроксимация, интерполяция и экстраполяция простыми словами",
+        "url": "https://blog.skillfactory.ru/approksimatsiya-interpolyatsiya-ekstrapolyatsiya/",
+        "supports": [
+          "shortAnswer",
+          "topic-2-1-kp-1",
           "topic-2-1-kp-2"
         ]
       }
@@ -3298,6 +3307,15 @@ export const topics: Topic[] = [
           "shortAnswer",
           "topic-3-6-kp-2"
         ]
+      },
+      {
+        "title": "Skillbox Media: база данных простыми словами",
+        "url": "https://skillbox.ru/media/code/baza-dannykh-chto-eto-takoe-i-zachem-ona-nuzhna/",
+        "supports": [
+          "shortAnswer",
+          "topic-3-6-kp-1",
+          "topic-3-6-kp-2"
+        ]
       }
     ],
     "id": "topic-3-6",
@@ -3958,6 +3976,15 @@ export const topics: Topic[] = [
         "supports": [
           "shortAnswer",
           "topic-3-12-kp-2"
+        ]
+      },
+      {
+        "title": "Skillbox Media: DNS простыми словами",
+        "url": "https://skillbox.ru/media/code/dns-chto-eto-takoe-i-kak-eye-ispolzuyut/",
+        "supports": [
+          "shortAnswer",
+          "topic-3-12-kp-2",
+          "topic-3-12-kp-3"
         ]
       }
     ],

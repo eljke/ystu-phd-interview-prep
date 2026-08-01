@@ -42,6 +42,16 @@ function makeSet(
       : pool;
   const effectivePool = reviewPool.length >= 5 ? reviewPool : pool;
   const options = { bank: effectivePool, statuses, recentQuestionIds };
+  const topicCount = new Set(effectivePool.map((item) => item.topicId)).size;
+  if (topicCount === 1) {
+    if (mode === 'recall')
+      return selectPracticeQuestions({ ...options, count: 1, kind: 'free-recall' });
+    if (mode === 'objective')
+      return selectPracticeQuestions({ ...options, count: 5, kind: 'objective' });
+    const objective = selectPracticeQuestions({ ...options, count: 4, kind: 'objective' });
+    const recall = selectPracticeQuestions({ ...options, count: 1, kind: 'free-recall' });
+    return [...objective, ...recall].sort(() => Math.random() - 0.5);
+  }
   if (mode === 'objective')
     return selectPracticeQuestions({ ...options, count: 10, kind: 'objective' });
   if (mode === 'recall')
@@ -182,7 +192,7 @@ export function PracticePage() {
           <p className="eyebrow">Банк · {bank.length} вопросов</p>
           <h1>Тренировка без зубрёжки</h1>
           <p>
-            Варианты проверяют базу, а «объясните своими словами» готовит к разговору с комиссией.
+            В одном наборе не повторяем один и тот же тезис: проверяем смысл, термины и применение.
           </p>
         </div>
       </header>
@@ -250,7 +260,7 @@ export function PracticePage() {
               <div>
                 <h3>{item.question.prompt}</h3>
                 <p className="notice">
-                  Сначала ответьте без подсказки — коротко: определение, смысл, простой пример.
+                  Достаточно двух-трёх ясных фраз и одного простого примера.
                 </p>
                 {!revealed.has(item.id) ? (
                   <Button

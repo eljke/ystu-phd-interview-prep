@@ -1,9 +1,9 @@
 import {
   type QuizQuestion,
-  type SingleChoiceQuestion,
   type Topic,
   type TopicSection,
 } from '../../entities/content/topic';
+import { getFriendlyRecallPrompt } from './friendlyPrompts';
 import type { TopicStatus } from '../../entities/progress/progress';
 import { createOrderingQuestion } from './orderingQuestions';
 import { createTermQuestion } from './termQuestions';
@@ -31,17 +31,7 @@ function rotate<T>(items: T[], offset: number): T[] {
 }
 
 export function buildQuestionBank(topics: readonly Topic[]): QuestionBankItem[] {
-  const bySection = new Map<
-    TopicSection,
-    Array<{ topic: Topic; title: string; explanation: string }>
-  >();
-  for (const topic of topics) {
-    const entries = bySection.get(topic.section) ?? [];
-    entries.push(...topic.keyPoints.map((point) => ({ topic, ...point })));
-    bySection.set(topic.section, entries);
-  }
-
-  return topics.flatMap((topic) => {
+  return topics.flatMap((topic, topicIndex) => {
     const authored = topic.quiz.map((question) => ({
       id: `${topic.id}:${question.id}`,
       topicId: topic.id,
@@ -83,41 +73,13 @@ export function buildQuestionBank(topics: readonly Topic[]): QuestionBankItem[] 
           },
         ]
       : [];
-    const sectionPoints = bySection.get(topic.section) ?? [];
-    const generated = topic.keyPoints.map((point, index): QuestionBankItem => {
-      const distractors = rotate(sectionPoints, index + 1)
-        .filter((candidate) => candidate.topic.id !== topic.id || candidate.title !== point.title)
-        .slice(0, 3);
-      const questionId = `${topic.id}:concept:${point.id}`;
-      const question: SingleChoiceQuestion = {
-        id: questionId,
-        type: 'single-choice',
-        prompt: `Как проще всего объяснить «${point.title}»?`,
-        explanation: point.explanation,
-        keyPointIds: [point.id],
-        options: [
-          { id: `${questionId}:correct`, text: point.explanation },
-          ...distractors.map((candidate, optionIndex) => ({
-            id: `${questionId}:d${optionIndex + 1}`,
-            text: candidate.explanation,
-          })),
-        ],
-        correctOptionId: `${questionId}:correct`,
-      };
-      return {
-        id: questionId,
-        topicId: topic.id,
-        topicCode: topic.code,
-        section: topic.section,
-        kind: 'objective',
-        question,
-        sourceTitles: topic.sources.map((source) => source.title),
-      };
-    });
     const selectedPoints = topic.keyPoints.slice(0, 3);
-    const foreignPoints = sectionPoints
-      .filter((candidate) => candidate.topic.id !== topic.id)
-      .slice(0, 3);
+    const foreignPoints = rotate(
+      topics
+        .filter((candidate) => candidate.section === topic.section && candidate.id !== topic.id)
+        .flatMap((candidate) => candidate.keyPoints),
+      topicIndex * 3,
+    ).slice(0, 3);
     const multipleId = `${topic.id}:key-points`;
     const multiple: QuestionBankItem = {
       id: multipleId,
@@ -128,8 +90,8 @@ export function buildQuestionBank(topics: readonly Topic[]): QuestionBankItem[] 
       question: {
         id: multipleId,
         type: 'multiple-choice',
-        prompt: `Какие тезисы действительно относятся к теме ${topic.code}?`,
-        explanation: `Главные тезисы: ${selectedPoints.map((point) => point.title).join(', ')}.`,
+        prompt: 'Какие три утверждения здесь по делу, а какие относятся к другой теме?',
+        explanation: `Опорные идеи: ${selectedPoints.map((point) => point.title).join(', ')}.`,
         keyPointIds: selectedPoints.map((point) => point.id),
         options: [
           ...selectedPoints.map((point) => ({
@@ -155,8 +117,8 @@ export function buildQuestionBank(topics: readonly Topic[]): QuestionBankItem[] 
       question: {
         id: matchingId,
         type: 'matching',
-        prompt: 'Соотнесите понятие и его простой смысл.',
-        explanation: 'Если связи понятны, тему проще объяснить без заученного текста.',
+        prompt: `Соберите тему ${topic.code}: что здесь что означает?`,
+        explanation: 'Это основные понятия темы и их смысл.',
         keyPointIds: selectedPoints.map((point) => point.id),
         left: selectedPoints.map((point) => ({
           id: `${matchingId}:l:${point.id}`,
@@ -184,13 +146,13 @@ export function buildQuestionBank(topics: readonly Topic[]): QuestionBankItem[] 
       question: {
         id: `${topic.id}:recall`,
         type: 'free-recall',
-        prompt: `Объясните простыми словами: ${topic.originalText}`,
+        prompt: getFriendlyRecallPrompt(topic.code),
         modelAnswer: topic.shortAnswer,
-        checklist: topic.oralChecklist.map((item) => item.label),
+        checklist: topic.keyPoints.map((point) => point.title),
       },
       sourceTitles: topic.sources.map((source) => source.title),
     };
-    return [...authored, ...term, ...ordering, ...generated, multiple, matching, recall];
+    return [...authored, ...term, ...ordering, multiple, matching, recall];
   });
 }
 
@@ -248,15 +210,28 @@ export function selectPracticeQuestions({
     }))
     .sort((left, right) => right.rank - left.rank);
   const selected: QuestionBankItem[] = [];
-  for (const candidate of ranked) {
-    if (selected.length >= count) break;
-    if (selected.some((item) => item.topicId === candidate.item.topicId)) continue;
-    selected.push(candidate.item);
-  }
-  for (const candidate of ranked) {
-    if (selected.length >= count) break;
-    if (!selected.includes(candidate.item)) selected.push(candidate.item);
-  }
+  const fingerprint = (item: QuestionBankItem) =>
+    item.question.type === 'free-recall'
+      ? item.id
+      : [...item.question.keyPointIds].sort().join('|') || item.id;
+  const addMatching = (accept: (item: QuestionBankItem) => boolean) => {
+    for (const candidate of ranked) {
+      if (selected.length >= count) break;
+      if (!selected.includes(candidate.item) && accept(candidate.item)) selected.push(candidate.item);
+    }
+  };
+  const hasTopic = (item: QuestionBankItem) =>
+    selected.some((selectedItem) => selectedItem.topicId === item.topicId);
+  const hasType = (item: QuestionBankItem) =>
+    selected.some((selectedItem) => selectedItem.question.type === item.question.type);
+  const hasFingerprint = (item: QuestionBankItem) =>
+    selected.some((selectedItem) => fingerprint(selectedItem) === fingerprint(item));
+
+  addMatching((item) => !hasTopic(item) && !hasType(item) && !hasFingerprint(item));
+  addMatching((item) => !hasTopic(item) && !hasFingerprint(item));
+  addMatching((item) => !hasType(item) && !hasFingerprint(item));
+  addMatching((item) => !hasFingerprint(item));
+  addMatching(() => true);
   return selected.map((item) => ({
     ...item,
     question:
