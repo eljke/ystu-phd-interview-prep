@@ -17,6 +17,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "content:audit": "tsx scripts/audit-content.ts",
+    "config:verify": "tsx scripts/verify-runtime-config.ts",
     "supabase:start": "supabase start",
     "supabase:stop": "supabase stop",
     "supabase:reset": "supabase db reset",

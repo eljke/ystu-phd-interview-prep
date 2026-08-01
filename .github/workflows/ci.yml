@@ -13,12 +13,20 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 22
-      - run: npm install
-      - run: npm run typecheck
-      - run: npm run lint
-      - run: npm run content:audit
-      - run: npm run test:run
-      - run: npm run build
+      - run: npm ci
+      - run: npm run verify
+  database:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run supabase:start
+      - run: npm run test:rls
+      - if: always()
+        run: npm run supabase:stop
   e2e:
     runs-on: ubuntu-latest
     needs: validate
@@ -27,6 +35,6 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 22
-      - run: npm install
+      - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm run e2e:chromium
