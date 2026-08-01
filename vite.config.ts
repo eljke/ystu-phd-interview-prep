@@ -12,7 +12,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'prompt',
-      includeAssets: ['icons/icon.svg'],
+      includeAssets: ['icons/icon.svg', 'source/ystu-programme-1.2.2-2026.pdf'],
       manifest: {
         name: 'Подготовка к собеседованию ЯГТУ',
         short_name: 'ЯГТУ: подготовка',

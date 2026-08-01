@@ -5,13 +5,13 @@ import type {
 } from '../../entities/progress/progress';
 import type { StudyRepository } from '../../repositories/StudyRepository';
 import { mapStorageError } from './databaseErrors';
-import { YagtuDatabase } from './YagtuDatabase';
+import { YstuDatabase } from './YstuDatabase';
 
 const defaultSettings = (): AppSettings => ({ id:'app-settings', theme:'system', oralPreparationSeconds:20, oralAnswerSeconds:90, oralTimerEnabled:true, updatedAt:new Date().toISOString() });
 const sorted = <T extends { completedAt: string }>(items: T[]) => items.sort((a,b)=>a.completedAt.localeCompare(b.completedAt));
 
 export class DexieStudyRepository implements StudyRepository {
-  constructor(private readonly db = new YagtuDatabase()) {}
+  constructor(private readonly db = new YstuDatabase()) {}
   async initialize() { try { await this.db.open(); if (!(await this.db.settings.get('app-settings'))) await this.db.settings.put(defaultSettings()); } catch(error) { throw mapStorageError(error); } }
   async listProfiles() { return this.db.profiles.orderBy('updatedAt').toArray(); }
   async saveProfile(profile: Profile) { await this.db.profiles.put(profile); }

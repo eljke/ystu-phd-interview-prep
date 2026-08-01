@@ -1,8 +1,8 @@
-# YAGTU Interview Prep Implementation Plan
+# YSTU Interview Prep Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build and publish a modern offline-first React application that helps two people prepare for the YAGTU 1.2.2 doctoral admission interview using all 43 topics from the approved programme.
+**Goal:** Build and publish a modern offline-first React application that helps two people prepare for the YSTU 1.2.2 doctoral admission interview using all 43 topics from the approved programme.
 
 **Architecture:** The application is a static Vite SPA using HashRouter. Versioned study content is bundled as typed TypeScript modules, while profiles, attempts, progress, sessions, and settings are stored behind a repository interface implemented with Dexie/IndexedDB. Pure domain modules calculate mastery, review priority, pair readiness, backup merge results, and content audit results; React features consume those modules without importing Dexie directly.
 
@@ -80,7 +80,7 @@
 
 ### Storage
 
-- `src/storage/dexie/YagtuDatabase.ts` — schema and migrations.
+- `src/storage/dexie/YstuDatabase.ts` — schema and migrations.
 - `src/storage/dexie/DexieStudyRepository.ts` — repository implementation.
 - `src/storage/dexie/databaseErrors.ts` — typed IndexedDB/quota error mapping.
 - `src/storage/memory/MemoryStudyRepository.ts` — no-save fallback and deterministic tests.
@@ -1067,7 +1067,7 @@ git commit -m "feat: add readiness and review algorithms"
 ### Task 8: Implement Dexie Storage, Migrations, and Memory Fallback
 
 **Files:**
-- Create: `src/storage/dexie/YagtuDatabase.ts`
+- Create: `src/storage/dexie/YstuDatabase.ts`
 - Create: `src/storage/dexie/DexieStudyRepository.ts`
 - Create: `src/storage/dexie/DexieStudyRepository.test.ts`
 - Create: `src/storage/dexie/databaseErrors.ts`
@@ -1076,7 +1076,7 @@ git commit -m "feat: add readiness and review algorithms"
 
 **Interfaces:**
 - Consumes: all Task 2 persistence types and `StudyRepository`.
-- Produces: `YagtuDatabase`, `DexieStudyRepository`, `MemoryStudyRepository`, and `mapStorageError(error): StorageError`.
+- Produces: `YstuDatabase`, `DexieStudyRepository`, `MemoryStudyRepository`, and `mapStorageError(error): StorageError`.
 
 - [ ] **Step 1: Write failing repository contract tests**
 
@@ -1120,7 +1120,7 @@ Create a discriminated `StorageError` with kinds `unavailable`, `quota`, and `un
 
 - [ ] **Step 7: Verify repository behavior and migration safety**
 
-Add a test that opens schema version 1, writes attempts, reopens the database, and confirms all data remains. Reserve migration functions in `YagtuDatabase` instead of destructive table recreation.
+Add a test that opens schema version 1, writes attempts, reopens the database, and confirms all data remains. Reserve migration functions in `YstuDatabase` instead of destructive table recreation.
 
 Run:
 
@@ -1560,7 +1560,7 @@ Verify export creates a versioned JSON filename, invalid Zod input does not alte
 
 - [ ] **Step 6: Implement export and import**
 
-Use filename `yagtu-prep-backup-YYYY-MM-DD.json`. Read files with `File.text()`, parse JSON safely, validate, verify checksum, show diff, then call repository methods only after confirmation.
+Use filename `ystu-prep-backup-YYYY-MM-DD.json`. Read files with `File.text()`, parse JSON safely, validate, verify checksum, show diff, then call repository methods only after confirmation.
 
 - [ ] **Step 7: Verify round-trip integration**
 
@@ -1729,7 +1729,7 @@ Write independent tests for:
 Build with:
 
 ```bash
-VITE_BASE_PATH=/yagtu-phd-interview-prep/ npm run build
+VITE_BASE_PATH=/ystu-phd-interview-prep/ npm run build
 ```
 
 Serve `dist` under that prefix and verify the app, assets, and a hash route load without 404 errors.

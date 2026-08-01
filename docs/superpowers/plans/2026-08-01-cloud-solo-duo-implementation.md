@@ -18,7 +18,7 @@
 - Audio recording is optional, local by default, explicitly uploaded, limited to 5 minutes and 15 MB, and expires after 14 days.
 - No WebRTC call, speech recognition, AI scoring, public rankings, streak penalties, or mandatory daily activity.
 - TypeScript remains strict with `exactOptionalPropertyTypes`; no application `any`.
-- Replace Latin `YAGTU`/`yagtu` branding and identifiers with `YSTU`/`ystu`; preserve Russian official name `ЯГТУ` in Russian-language source descriptions.
+- Use Latin `YSTU`/`ystu` branding and identifiers; preserve Russian official name `ЯГТУ` in Russian-language source descriptions.
 - Each task ends with relevant tests and one conventional commit.
 
 ---
@@ -27,10 +27,10 @@
 
 **Files:**
 
-- Rename: `src/storage/dexie/YagtuDatabase.ts` → `src/storage/dexie/YstuDatabase.ts`
-- Rename: `public/source/yagtu-programme-1.2.2-2026.pdf` → `public/source/ystu-programme-1.2.2-2026.pdf`
+- Use `src/storage/dexie/YstuDatabase.ts`.
+- Use `public/source/ystu-programme-1.2.2-2026.pdf`.
 - Modify: `package.json`, `package-lock.json`, `README.md`, `vite.config.ts`, `src/pages/AboutPage.tsx`, `src/pages/BackupPage.tsx`, `src/storage/dexie/DexieStudyRepository.ts`
-- Modify: historical specs/plans containing Latin `YAGTU` or `yagtu`
+- Update historical specs/plans to the current branding.
 - Test: `src/storage/dexie/YstuDatabase.test.ts`
 
 **Interfaces:**
@@ -41,9 +41,9 @@
 - [ ] Add a fake-indexeddb test that writes two profiles to the legacy database, initializes `YstuDatabase`, and expects both profiles in the new database.
 - [ ] Run `npm run test:run -- src/storage/dexie/YstuDatabase.test.ts` and confirm it fails because migration does not exist.
 - [ ] Implement `migrateLegacyYagtuDatabase()` with Dexie table reads and idempotent `bulkPut`; do not delete the legacy database.
-- [ ] Rename Latin branding, package name, backup filename, source PDF path, and imports; verify `rg -n -i "yagtu"` only finds the explicit legacy database migration.
+- [ ] Rename branding, package name, backup filename, source PDF path, and imports; verify only migration compatibility uses remain.
 - [ ] Run `npm run verify` and `npm run e2e:chromium`.
-- [ ] Commit `refactor(branding): rename YAGTU identifiers to YSTU`.
+- [ ] Commit the branding refactor.
 
 ### Task 2: Supabase schema, whitelist, and security policies
 
