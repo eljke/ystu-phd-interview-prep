@@ -8,7 +8,16 @@ test('one programme topic is practiced through several question formats', async 
   await page.getByRole('link', { name: /Закрепить разными вопросами/ }).click();
 
   await expect(page.getByRole('heading', { name: 'Тренировка без зубрёжки' })).toBeVisible();
-  await expect(page.getByText('Соотнесите понятие и его простой смысл.')).toBeVisible();
-  await expect(page.getByText(/Какие тезисы действительно относятся к теме 1.1/)).toBeVisible();
-  await expect(page.getByText(/Объясните простыми словами/)).toBeVisible();
+  await expect(page.locator('.quiz-question')).toHaveCount(5);
+  await expect(page.getByText('Соберите тему 1.1: что здесь что означает?')).toBeVisible();
+  await expect(
+    page.getByRole('group', {
+      name: 'Какие три утверждения здесь по делу, а какие относятся к другой теме?',
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('heading', {
+      name: 'Зачем вообще строить модель, если можно изучать реальный объект?',
+    }),
+  ).toBeVisible();
 });
