@@ -1,0 +1,1 @@
+-- Production access is bootstrapped explicitly through Supabase Dashboard SQL.
