@@ -1,276 +1,282 @@
-import { ArrowRightLeft, Check, RotateCcw, Shuffle, Users } from 'lucide-react';
-import { useMemo, useState } from 'react';
-import { useProfiles } from '../app/providers/ProfileProvider';
-import { useStudyRepository } from '../app/providers/RepositoryProvider';
+import { Check, Clipboard, RefreshCcw, Trophy, Users } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuth } from '../app/providers/AuthProvider';
 import { topics } from '../content/topics';
-import { rotateRoles } from '../entities/pair/roleRotation';
-import {
-  createPairTopicPool,
-  sampleWithoutReplacement,
-  type PairTopicMode,
-} from '../entities/pair/topicPool';
-import type { OralCriterionResult, StudySessionMode } from '../entities/progress/progress';
-import { criterionScore, OralChecklistForm } from '../features/oral-exam/OralChecklistForm';
-import { useMasteryMap } from '../features/progress/useMasteryMap';
-import { Button, LinkButton } from '../shared/ui/Button';
-import { createId } from '../shared/utils/id';
+import type { QuizQuestion } from '../entities/content/topic';
+import { QuizQuestionView } from '../features/quizzes/QuizQuestionView';
+import { buildQuestionBank, selectPracticeQuestions } from '../features/quizzes/questionBank';
+import type { QuizAnswer } from '../features/quizzes/scoreQuiz';
+import { toTournamentQuestion } from '../features/tournament/tournamentQuestions';
+import type {
+  PairInfo,
+  PairTournamentRepository,
+  TournamentState,
+} from '../repositories/PairTournamentRepository';
+import { getSupabaseClient } from '../services/supabase/client';
+import { SupabasePairTournamentRepository } from '../storage/supabase/SupabasePairTournamentRepository';
+import { Button } from '../shared/ui/Button';
 
-const MODE_LABELS: Record<PairTopicMode, string> = {
-  all: 'Случайные темы всей программы',
-  'responder-weak': 'Слабые темы отвечающего',
-  'pair-weak': 'Слабые темы пары',
-  'mock-interview': 'Пробное собеседование: 5 тем',
-};
+const questionBank = buildQuestionBank(topics);
+const questionById = new Map(questionBank.map((item) => [item.id, item]));
 
-const SESSION_MODE: Record<PairTopicMode, StudySessionMode> = {
-  all: 'random-section',
-  'responder-weak': 'responder-weak',
-  'pair-weak': 'pair-weak',
-  'mock-interview': 'mock-interview',
-};
+function answerText(question: QuizQuestion, answer: QuizAnswer | null): string {
+  if (answer === null) return '—';
+  if (question.type === 'single-choice')
+    return question.options.find((item) => item.id === answer)?.text ?? String(answer);
+  if (question.type === 'multiple-choice')
+    return question.options
+      .filter((item) => Array.isArray(answer) && answer.includes(item.id))
+      .map((item) => item.text)
+      .join('; ');
+  if (question.type === 'ordering')
+    return (Array.isArray(answer) ? answer : [])
+      .map((id) => question.items.find((item) => item.id === id)?.text)
+      .join(' → ');
+  if (question.type === 'matching' && typeof answer === 'object' && !Array.isArray(answer))
+    return question.left
+      .map(
+        (left) =>
+          `${left.text} — ${question.right.find((right) => right.id === answer[left.id])?.text ?? '?'}`,
+      )
+      .join('; ');
+  return String(answer);
+}
 
-const pickRandom = <T,>(items: readonly T[]): T | undefined =>
-  items[Math.floor(Math.random() * items.length)];
+export function PairSessionPage({ gateway: provided }: { gateway?: PairTournamentRepository }) {
+  const { session, cloudEnabled } = useAuth();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const gateway = useMemo(() => {
+    if (provided) return provided;
+    const client = getSupabaseClient();
+    return client ? new SupabasePairTournamentRepository(client) : null;
+  }, [provided]);
+  const [pair, setPair] = useState<PairInfo | null>(null);
+  const [tournament, setTournament] = useState<TournamentState | null>(null);
+  const [answer, setAnswer] = useState<QuizAnswer>();
+  const [inviteUrl, setInviteUrl] = useState('');
+  const [message, setMessage] = useState('');
+  const [busy, setBusy] = useState(false);
 
-export function PairSessionPage() {
-  const { profiles } = useProfiles();
-  const { repository, notifyDataChanged } = useStudyRepository();
-  const firstMastery = useMasteryMap(profiles[0]?.id);
-  const secondMastery = useMasteryMap(profiles[1]?.id);
-  const [roles, setRoles] = useState({
-    responderId: profiles[0]?.id ?? '',
-    reviewerId: profiles[1]?.id ?? '',
-  });
-  const [mode, setMode] = useState<PairTopicMode>('all');
-  const [topic, setTopic] = useState(() => pickRandom(topics));
-  const [mockTopics, setMockTopics] = useState(() => sampleWithoutReplacement(topics, 5));
-  const [mockIndex, setMockIndex] = useState(0);
-  const [revealed, setRevealed] = useState(false);
-  const [criteria, setCriteria] = useState<Record<string, OralCriterionResult>>({});
-  const [notes, setNotes] = useState('');
-  const [completed, setCompleted] = useState(false);
-  const [sessionId, setSessionId] = useState(() => createId('session'));
-  const [sessionStartedAt, setSessionStartedAt] = useState(() => new Date().toISOString());
-  const [attemptIds, setAttemptIds] = useState<string[]>([]);
-  const [visitedTopicIds, setVisitedTopicIds] = useState<string[]>([]);
-
-  const firstId = profiles[0]?.id;
-  const responderScores = roles.responderId === firstId ? firstMastery.map : secondMastery.map;
-  const reviewerScores = roles.reviewerId === firstId ? firstMastery.map : secondMastery.map;
-  const rankedPool = useMemo(
-    () => createPairTopicPool(topics, mode, responderScores, reviewerScores),
-    [mode, responderScores, reviewerScores],
-  );
-  const activePool = mode === 'responder-weak' || mode === 'pair-weak' ? rankedPool.slice(0, 12) : rankedPool;
-  const currentTopic = mode === 'mock-interview' ? mockTopics[mockIndex] : topic;
-  const responder = profiles.find((profile) => profile.id === roles.responderId);
-  const reviewer = profiles.find((profile) => profile.id === roles.reviewerId);
-
-  const resetAnswer = () => {
-    setRevealed(false);
-    setCriteria({});
-    setNotes('');
-  };
-
-  const resetSession = (nextMode: PairTopicMode = mode) => {
-    const nextMockTopics = sampleWithoutReplacement(topics, 5);
-    setMockTopics(nextMockTopics);
-    setMockIndex(0);
-    setTopic(pickRandom(createPairTopicPool(topics, nextMode, responderScores, reviewerScores).slice(0, nextMode === 'all' ? topics.length : 12)));
-    setCompleted(false);
-    setSessionId(createId('session'));
-    setSessionStartedAt(new Date().toISOString());
-    setAttemptIds([]);
-    setVisitedTopicIds([]);
-    resetAnswer();
-  };
-
-  const changeMode = (nextMode: PairTopicMode) => {
-    setMode(nextMode);
-    resetSession(nextMode);
-  };
-
-  const chooseAnother = () => {
-    if (mode === 'mock-interview') {
-      resetSession(mode);
-      return;
+  const refresh = useCallback(async () => {
+    if (!gateway) return;
+    try {
+      const [nextPair, nextTournament] = await Promise.all([
+        gateway.getPair(),
+        gateway.getActiveTournament(),
+      ]);
+      setPair(nextPair);
+      if (nextTournament) setTournament(nextTournament);
+    } catch (reason) {
+      setMessage(reason instanceof Error ? reason.message : 'Не удалось обновить турнир.');
     }
-    setTopic(pickRandom(activePool));
-    resetAnswer();
-  };
+  }, [gateway]);
 
-  const swapRoles = () => {
-    setRoles((current) => rotateRoles(current));
-    resetAnswer();
-  };
+  useEffect(() => {
+    void refresh();
+    const timer = window.setInterval(() => void refresh(), 1500);
+    return () => window.clearInterval(timer);
+  }, [refresh]);
 
-  const save = async () => {
-    if (!currentTopic || profiles.length !== 2) return;
-    const now = new Date().toISOString();
-    const oralId = createId('oral');
-    const score = criterionScore(criteria);
-    const results = currentTopic.oralChecklist.map((item) => ({
-      criterionId: item.id,
-      result: criteria[item.id] ?? ('missed' as OralCriterionResult),
-    }));
+  useEffect(() => {
+    const token = searchParams.get('invite');
+    if (!token || !gateway) return;
+    setBusy(true);
+    void gateway
+      .acceptInvite(token)
+      .then(async () => {
+        navigate('/pair', { replace: true });
+        await refresh();
+        setMessage('Пара создана. Можно начинать микротурнир.');
+      })
+      .catch((reason: unknown) =>
+        setMessage(reason instanceof Error ? reason.message : 'Не удалось принять приглашение.'),
+      )
+      .finally(() => setBusy(false));
+  }, [gateway, navigate, refresh, searchParams]);
 
-    await repository.saveOralAttempt({
-      id: oralId,
-      profileId: roles.responderId,
-      topicId: currentTopic.id,
-      selfConfidence: score,
-      oralScore: score,
-      criteria: results,
-      startedAt: now,
-      completedAt: now,
-      updatedAt: now,
-    });
-    await repository.savePartnerAssessment({
-      id: createId('assessment'),
-      oralAttemptId: oralId,
-      responderProfileId: roles.responderId,
-      reviewerProfileId: roles.reviewerId,
-      topicId: currentTopic.id,
-      score,
-      criteria: results,
-      ...(notes.trim() ? { notes: notes.trim() } : {}),
-      completedAt: now,
-      updatedAt: now,
-    });
+  if (!cloudEnabled || !gateway)
+    return (
+      <main>
+        <h1>Микротурнир доступен после входа</h1>
+        <p>
+          Соло-тренировка продолжает работать локально. Для честного турнира на двух устройствах
+          нужна облачная авторизация.
+        </p>
+      </main>
+    );
 
-    const nextAttemptIds = [...attemptIds, oralId];
-    const nextTopicIds = visitedTopicIds.includes(currentTopic.id)
-      ? visitedTopicIds
-      : [...visitedTopicIds, currentTopic.id];
-    const mockFinished = mode === 'mock-interview' && mockIndex >= mockTopics.length - 1;
-    await repository.saveStudySession({
-      id: sessionId,
-      mode: SESSION_MODE[mode],
-      participantIds: [profiles[0]!.id, profiles[1]!.id],
-      topicIds: nextTopicIds,
-      attemptIds: nextAttemptIds,
-      startedAt: sessionStartedAt,
-      ...(mockFinished ? { completedAt: now } : {}),
-      updatedAt: now,
-    });
-    setAttemptIds(nextAttemptIds);
-    setVisitedTopicIds(nextTopicIds);
-    notifyDataChanged();
-
-    const nextRoles = rotateRoles(roles);
-    setRoles(nextRoles);
-    resetAnswer();
-    if (mockFinished) {
-      setCompleted(true);
-      return;
+  const createInvite = async () => {
+    setBusy(true);
+    setMessage('');
+    try {
+      const invite = await gateway.createInvite();
+      const url = `${window.location.origin}${window.location.pathname}#/pair?invite=${encodeURIComponent(invite.token)}`;
+      setInviteUrl(url);
+      await refresh();
+    } catch (reason) {
+      setMessage(reason instanceof Error ? reason.message : 'Не удалось создать приглашение.');
+    } finally {
+      setBusy(false);
     }
-    if (mode === 'mock-interview') {
-      setMockIndex((index) => index + 1);
-    } else {
-      const nextResponderScores = nextRoles.responderId === firstId ? firstMastery.map : secondMastery.map;
-      const nextReviewerScores = nextRoles.reviewerId === firstId ? firstMastery.map : secondMastery.map;
-      const nextPool = createPairTopicPool(topics, mode, nextResponderScores, nextReviewerScores);
-      const candidates = mode === 'all' ? nextPool : nextPool.slice(0, 12);
-      setTopic(pickRandom(candidates));
+  };
+  const start = async () => {
+    setBusy(true);
+    setMessage('');
+    try {
+      const selected = selectPracticeQuestions({ bank: questionBank, count: 7, kind: 'objective' });
+      const questions = selected.map(toTournamentQuestion).filter((item) => item !== null);
+      setTournament(await gateway.createTournament(questions));
+      setAnswer(undefined);
+    } catch (reason) {
+      setMessage(reason instanceof Error ? reason.message : 'Не удалось начать турнир.');
+    } finally {
+      setBusy(false);
+    }
+  };
+  const submit = async () => {
+    if (!tournament || answer === undefined) return;
+    setBusy(true);
+    try {
+      setTournament(await gateway.submitAnswer(tournament.id, tournament.currentRound, answer));
+    } catch (reason) {
+      setMessage(reason instanceof Error ? reason.message : 'Не удалось зафиксировать ответ.');
+    } finally {
+      setBusy(false);
+    }
+  };
+  const advance = async () => {
+    if (!tournament) return;
+    setBusy(true);
+    try {
+      setTournament(await gateway.advance(tournament.id));
+      setAnswer(undefined);
+    } catch (reason) {
+      setMessage(reason instanceof Error ? reason.message : 'Не удалось перейти дальше.');
+    } finally {
+      setBusy(false);
     }
   };
 
-  if (!currentTopic && !completed) return null;
+  const currentItem = tournament?.questionId ? questionById.get(tournament.questionId) : undefined;
+  const question = currentItem?.question.type === 'free-recall' ? undefined : currentItem?.question;
+  const opponent = pair?.members.find((member) => member.userId !== session?.userId);
 
   return (
     <>
       <header className="page-header">
         <div>
-          <p className="eyebrow">Кооперативная подготовка</p>
-          <h1>Парная сессия</h1>
-          <p>Один отвечает без подсказки, второй отмечает ключевые элементы и затем обсуждает ответ.</p>
+          <p className="eyebrow">Два устройства · закрытые ответы</p>
+          <h1>Микротурнир</h1>
+          <p>
+            Одинаковые вопросы, ответы фиксируются независимо. Разбор и счёт откроются только после
+            ответа обоих.
+          </p>
         </div>
-        <Button variant="secondary" onClick={chooseAnother}>
-          <Shuffle size={17} /> {mode === 'mock-interview' ? 'Новый набор' : 'Другая тема'}
+        <Button variant="secondary" onClick={() => void refresh()}>
+          <RefreshCcw size={17} /> Обновить
         </Button>
       </header>
-
-      <section className="session-controls" aria-label="Настройки парной сессии">
-        <label>
-          <span>Режим вопросов</span>
-          <select value={mode} onChange={(event) => changeMode(event.target.value as PairTopicMode)}>
-            {Object.entries(MODE_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>{label}</option>
-            ))}
-          </select>
-        </label>
-        <p>
-          {mode === 'mock-interview'
-            ? `Вопрос ${Math.min(mockIndex + 1, mockTopics.length)} из ${mockTopics.length}`
-            : `В пуле ${activePool.length} тем`}
+      {message && (
+        <p className="notice" role="status">
+          {message}
         </p>
-      </section>
-
-      {completed ? (
+      )}
+      {!pair || pair.members.length < 2 ? (
+        <section className="pair-card">
+          <Users size={42} />
+          <h2>{pair ? 'Ждём второго участника' : 'Создайте пару'}</h2>
+          <p>Ссылка действует 24 часа и принимается только GitHub-аккаунтом из whitelist.</p>
+          <Button disabled={busy} onClick={() => void createInvite()}>
+            Создать ссылку-приглашение
+          </Button>
+          {inviteUrl && (
+            <div className="field">
+              <span className="field__label">Отправьте партнёру</span>
+              <input readOnly value={inviteUrl} />
+              <Button
+                variant="secondary"
+                onClick={() => void navigator.clipboard.writeText(inviteUrl)}
+              >
+                <Clipboard size={17} /> Копировать
+              </Button>
+            </div>
+          )}
+        </section>
+      ) : !tournament || tournament.status === 'completed' ? (
         <section className="pair-complete">
-          <Check size={42} />
-          <h2>Пробное собеседование завершено</h2>
-          <p>Разобрано 5 тем. Результаты сохранены обоим участникам и учтены в общей готовности.</p>
-          <Button onClick={() => resetSession('mock-interview')}>
-            <RotateCcw size={17} /> Начать новый набор
+          <Trophy size={46} />
+          <h2>{tournament?.status === 'completed' ? 'Турнир завершён' : 'Пара готова'}</h2>
+          {tournament?.status === 'completed' && (
+            <p>
+              Счёт: {tournament.myScore} : {tournament.opponentScore}
+            </p>
+          )}
+          <p>7 случайных автопроверяемых вопросов из разных тем.</p>
+          <Button disabled={busy} onClick={() => void start()}>
+            Начать новый турнир
           </Button>
         </section>
-      ) : currentTopic ? (
-        <>
-          <section className="roles">
-            <article><span>Отвечает</span><strong>{responder?.name}</strong></article>
-            <button className="role-swap" aria-label="Поменять роли" onClick={swapRoles}><ArrowRightLeft /></button>
-            <article><span>Проверяет</span><strong>{reviewer?.name}</strong></article>
-          </section>
-          <section className="pair-card">
-            <div className="pair-question">
-              <span className="topic-code">{currentTopic.code}</span>
-              <h2>{currentTopic.originalText}</h2>
-              <p>Проверяющий не открывает шпаргалку до окончания ответа.</p>
+      ) : question ? (
+        <section className="pair-card">
+          <div className="roles">
+            <article>
+              <span>Вы</span>
+              <strong>{tournament.myScore}</strong>
+            </article>
+            <article>
+              <span>{opponent?.displayName ?? 'Партнёр'}</span>
+              <strong>{tournament.opponentScore}</strong>
+            </article>
+          </div>
+          <div className="pair-question">
+            <span className="topic-code">
+              Раунд {tournament.currentRound + 1} / {tournament.totalRounds} · тема{' '}
+              {currentItem?.topicCode}
+            </span>
+            <QuizQuestionView
+              question={question}
+              answer={answer}
+              disabled={tournament.submitted || busy}
+              onChange={setAnswer}
+            />
+          </div>
+          {!tournament.submitted ? (
+            <Button disabled={answer === undefined || busy} onClick={() => void submit()}>
+              <Check size={17} /> Зафиксировать ответ
+            </Button>
+          ) : !tournament.revealed ? (
+            <div className="pair-wait">
+              <Users size={42} />
+              <h3>Ответ зафиксирован</h3>
+              <p>Ответ партнёра и правильный вариант пока скрыты. Ждём второго участника.</p>
             </div>
-            {!revealed ? (
-              <div className="pair-wait">
-                <Users size={46} />
-                <Button onClick={() => setRevealed(true)}>Ответ закончен — открыть проверку</Button>
+          ) : (
+            <div className="pair-review">
+              <div className="answer-card answer-card--short">
+                <p className="eyebrow">Ваш ответ · {tournament.myRoundScore} балл</p>
+                <p>{answerText(question, tournament.myAnswer)}</p>
+                <p className="eyebrow">Ответ партнёра · {tournament.opponentRoundScore} балл</p>
+                <p>{answerText(question, tournament.opponentAnswer)}</p>
+                <p className="eyebrow">Правильный ответ</p>
+                <p>{answerText(question, tournament.correctAnswer as QuizAnswer)}</p>
+                <strong>Почему так</strong>
+                <p>{tournament.explanation}</p>
               </div>
-            ) : (
-              <div className="pair-review">
-                <div className="answer-card answer-card--short">
-                  <p className="eyebrow">Короткий каркас</p>
-                  <p>{currentTopic.shortAnswer}</p>
-                </div>
-                <h3>Оценка партнёра</h3>
-                <OralChecklistForm
-                  criteria={currentTopic.oralChecklist}
-                  values={criteria}
-                  onChange={(id, value) => setCriteria((current) => ({ ...current, [id]: value }))}
-                />
-                <label className="field">
-                  <span className="field__label">Короткая заметка партнёра</span>
-                  <textarea
-                    value={notes}
-                    onChange={(event) => setNotes(event.target.value)}
-                    placeholder="Что получилось и что повторить"
-                    rows={3}
-                  />
-                </label>
-                <div className="button-row">
-                  <Button
-                    onClick={() => void save()}
-                    disabled={Object.keys(criteria).length < currentTopic.oralChecklist.length}
-                  >
-                    <Check size={17} />
-                    {mode === 'mock-interview' && mockIndex === mockTopics.length - 1
-                      ? 'Сохранить и завершить'
-                      : 'Сохранить и поменять роли'}
-                  </Button>
-                  <LinkButton variant="secondary" to={`/topics/${currentTopic.id}`}>Открыть тему</LinkButton>
-                </div>
-              </div>
-            )}
-          </section>
-        </>
-      ) : null}
+              <Button disabled={busy} onClick={() => void advance()}>
+                {tournament.currentRound + 1 === tournament.totalRounds
+                  ? 'Завершить турнир'
+                  : 'Следующий раунд'}
+              </Button>
+            </div>
+          )}
+        </section>
+      ) : (
+        <section className="notice">
+          <p>Вопрос не найден в текущей версии банка. Обновите приложение.</p>
+        </section>
+      )}
     </>
   );
 }

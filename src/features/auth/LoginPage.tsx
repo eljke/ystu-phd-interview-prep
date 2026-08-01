@@ -10,6 +10,9 @@ export function LoginPage({ gateway }: { gateway: AuthGateway }) {
     setBusy(true);
     setError('');
     try {
+      if (window.location.hash.includes('invite=')) {
+        window.localStorage.setItem('ystu-post-auth-hash', window.location.hash);
+      }
       await gateway.signInWithGitHub(`${window.location.origin}${import.meta.env.BASE_URL}`);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Не удалось войти через GitHub.');

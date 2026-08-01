@@ -55,6 +55,11 @@ export function AuthProvider({
         setSession(current);
         setRole(decision.role);
         setStatus('allowed');
+        const postAuthHash = window.localStorage.getItem('ystu-post-auth-hash');
+        if (postAuthHash) {
+          window.localStorage.removeItem('ystu-post-auth-hash');
+          window.location.hash = postAuthHash;
+        }
       })
       .catch((reason: unknown) => {
         if (!active) return;

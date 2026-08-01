@@ -1,7 +1,14 @@
 import type { QuizQuestion } from '../../entities/content/topic';
 
 export type QuizAnswer = string | string[] | Record<string, string>;
-const normalize = (value: string) => value.trim().toLocaleLowerCase('ru');
+const normalize = (value: string) =>
+  value
+    .trim()
+    .toLocaleLowerCase('ru')
+    .replaceAll('ё', 'е')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim()
+    .replace(/\s+/g, ' ');
 export function isAnswerCorrect(question: QuizQuestion, answer: QuizAnswer | undefined): boolean {
   if (answer === undefined) return false;
   switch (question.type) {
