@@ -48,14 +48,23 @@ Deno.serve(async (request) => {
   const { data: authData, error: authError } = await adminClient.auth.getUser(token);
   if (authError || !authData.user) return json({ error: 'Invalid session' }, 401);
 
-  const { data: actor } = await adminClient
+  const { data: actorUser, error: actorUserError } = await adminClient
     .from('app_users')
-    .select('id, github_user_id, access_entries!inner(role, active)')
+    .select('github_user_id')
     .eq('id', authData.user.id)
-    .eq('access_entries.active', true)
-    .eq('access_entries.role', 'admin')
     .maybeSingle();
-  if (!actor) return json({ error: 'Administrator role required' }, 403);
+  if (actorUserError) return json({ error: actorUserError.message }, 500);
+  if (!actorUser) return json({ error: 'Application profile is missing' }, 403);
+  const { data: actorAccess, error: actorError } = await adminClient
+    .from('access_entries')
+    .select('github_user_id')
+    .eq('github_user_id', actorUser.github_user_id)
+    .eq('active', true)
+    .eq('role', 'admin')
+    .maybeSingle();
+  if (actorError) return json({ error: actorError.message }, 500);
+  if (!actorAccess) return json({ error: 'Administrator role required' }, 403);
+  const actor = { id: authData.user.id, github_user_id: Number(actorUser.github_user_id) };
 
   let command: Command | null = null;
   try {
