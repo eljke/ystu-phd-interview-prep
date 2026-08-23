@@ -23,7 +23,7 @@ import { useAuth } from '../providers/AuthProvider';
 
 const links = [
   { to: '/', label: 'Главная', icon: Home, end: true },
-  { to: '/topics', label: 'Все темы', icon: BookOpen },
+  { to: '/topics', label: 'База знаний', icon: BookOpen },
   { to: '/practice', label: 'Тренировка', icon: ListChecks },
   { to: '/pair', label: 'Парная сессия', icon: Users },
   { to: '/progress', label: 'Прогресс', icon: ChartNoAxesCombined },
