@@ -3,7 +3,7 @@ import { completeOnboarding } from './helpers';
 
 test('one programme topic is practiced through several question formats', async ({ page }) => {
   await completeOnboarding(page);
-  await page.getByRole('link', { name: 'Все темы' }).click();
+  await page.getByRole('link', { name: 'База знаний' }).click();
   await page.getByLabel('Открыть тему 1.1', { exact: true }).click();
   await page.getByRole('link', { name: /Закрепить разными вопросами/ }).click();
 
