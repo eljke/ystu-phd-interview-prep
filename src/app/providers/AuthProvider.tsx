@@ -17,7 +17,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({
   children,
   gateway: provided,
-  allowLocalAccess = import.meta.env.DEV || import.meta.env.VITE_ALLOW_LOCAL_ACCESS === 'true',
+  allowLocalAccess = true,
 }: {
   children: ReactNode;
   gateway?: AuthGateway | null | undefined;

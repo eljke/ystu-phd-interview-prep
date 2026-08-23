@@ -1,15 +1,5 @@
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { readRuntimeConfig } from '../../shared/config/runtimeConfig';
-
-let client: SupabaseClient | null | undefined;
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 export function getSupabaseClient(): SupabaseClient | null {
-  if (client !== undefined) return client;
-  const config = readRuntimeConfig(import.meta.env);
-  client = config
-    ? createClient(config.supabaseUrl, config.supabasePublishableKey, {
-        auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
-      })
-    : null;
-  return client;
+  return null;
 }
