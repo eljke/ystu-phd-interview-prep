@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { completeOnboarding } from './helpers/onboarding';
+import { completeOnboarding } from './helpers';
 
 test('topic opens in theory-first mode and keeps self-check available', async ({ page }) => {
   await completeOnboarding(page);
