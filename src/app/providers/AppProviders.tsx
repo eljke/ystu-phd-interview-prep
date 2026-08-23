@@ -30,5 +30,9 @@ export function AppProviders({
       <Inner>{children}</Inner>
     </RepositoryProvider>
   );
-  return <AuthProvider gateway={authGateway}>{content}</AuthProvider>;
+  return (
+    <AuthProvider gateway={authGateway ?? null} allowLocalAccess>
+      {content}
+    </AuthProvider>
+  );
 }
